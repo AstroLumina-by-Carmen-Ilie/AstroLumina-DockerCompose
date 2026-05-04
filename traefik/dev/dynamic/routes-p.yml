@@ -1,0 +1,42 @@
+http:
+  middlewares:
+    to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    strip-payment:
+      stripPrefix:
+        prefixes:
+          - "/api/payment"
+
+  routers:
+    catch-http:
+      entryPoints: [web]
+      rule: "Host(`astrolumina.ro`)"
+      middlewares: [to-https]
+      service: noop
+
+    payment:
+      entryPoints: [websecure]
+      rule: "Host(`astrolumina.ro`) && PathPrefix(`/api/payment`)"
+      middlewares: [strip-payment]
+      tls:
+        certResolver: letsencrypt
+      service: payment-blue
+
+  services:
+    payment-blue:
+      loadBalancer:
+        servers:
+          - url: "http://payment-api-blue:3032"
+
+    payment-green:
+      loadBalancer:
+        servers:
+          - url: "http://payment-api-green:3032"
+
+    noop:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1"

@@ -1,0 +1,47 @@
+# =============================================================================
+# .dockerignore - Optimize Docker build context
+# =============================================================================
+
+# Git
+.git
+.gitignore
+
+# GitHub workflows (nu le includem in imagine)
+.github
+
+# Docker
+Dockerfile
+docker-compose*.yml
+
+# Build artifacts (se regenerheaza)
+dist/
+node_modules/
+
+# Development
+*.log
+npm-debug.log*
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test & Docs
+coverage/
+docs/
+README.md
+LICENSE
+
+# Temporary
+*.tmp
+*.temp
+tmp/
+temp/

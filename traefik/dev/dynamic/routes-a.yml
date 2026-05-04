@@ -1,0 +1,42 @@
+http:
+  middlewares:
+    to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    strip-astrology:
+      stripPrefix:
+        prefixes:
+          - "/api/astrology"
+
+  routers:
+    catch-http:
+      entryPoints: [web]
+      rule: "Host(`astrolumina.ro`)"
+      middlewares: [to-https]
+      service: noop
+
+    astrology:
+      entryPoints: [websecure]
+      rule: "Host(`astrolumina.ro`) && PathPrefix(`/api/astrology`)"
+      middlewares: [strip-astrology]
+      tls:
+        certResolver: letsencrypt
+      service: astrology-blue
+
+  services:
+    astrology-blue:
+      loadBalancer:
+        servers:
+          - url: "http://astrology-api-blue:3031"
+
+    astrology-green:
+      loadBalancer:
+        servers:
+          - url: "http://astrology-api-green:3031"
+
+    noop:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1"
