@@ -1,0 +1,116 @@
+http:
+  middlewares:
+    compress:
+      compress: {}
+
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customResponseHeaders:
+          X-Robots-Tag: "noindex, nofollow"
+
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1s
+
+    strip-astrology:
+      stripPrefix:
+        prefixes:
+          - "/api/astrology"
+
+    strip-payment:
+      stripPrefix:
+        prefixes:
+          - "/api/payment"
+
+    strip-booking:
+      stripPrefix:
+        prefixes:
+          - "/api/booking"
+
+  routers:
+    astrology:
+      entryPoints: [web]
+      rule: "Host(`staging.astrolumina.ro`) && PathPrefix(`/api/astrology`)"
+      middlewares:
+        - security-headers
+        - compress
+        - strip-astrology
+      service: astrology-blue
+
+    booking:
+      entryPoints: [web]
+      rule: "Host(`staging.astrolumina.ro`) && PathPrefix(`/api/booking`)"
+      middlewares:
+        - security-headers
+        - compress
+        - strip-booking
+      service: booking-blue
+
+    payment:
+      entryPoints: [web]
+      rule: "Host(`staging.astrolumina.ro`) && PathPrefix(`/api/payment`)"
+      middlewares:
+        - security-headers
+        - compress
+        - strip-payment
+      service: payment-blue
+
+    frontend:
+      entryPoints: [web]
+      rule: "Host(`staging.astrolumina.ro`)"
+      middlewares:
+        - security-headers
+        - compress
+      service: frontend-blue
+
+    dashboard:
+      entryPoints: [web]
+      rule: "Host(`staging.astrolumina.ro`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))"
+      service: api@internal
+
+  services:
+    astrology-blue:
+      loadBalancer:
+        servers:
+          - url: "http://astrology-api-blue:3031"
+
+    astrology-green:
+      loadBalancer:
+        servers:
+          - url: "http://astrology-api-green:3031"
+
+    booking-blue:
+      loadBalancer:
+        servers:
+          - url: "http://booking-api-blue:3033"
+
+    booking-green:
+      loadBalancer:
+        servers:
+          - url: "http://booking-api-green:3033"
+
+    payment-blue:
+      loadBalancer:
+        servers:
+          - url: "http://payment-api-blue:3032"
+
+    payment-green:
+      loadBalancer:
+        servers:
+          - url: "http://payment-api-green:3032"
+
+    frontend-blue:
+      loadBalancer:
+        servers:
+          - url: "http://frontend-blue:80"
+
+    frontend-green:
+      loadBalancer:
+        servers:
+          - url: "http://frontend-green:80"

@@ -20,9 +20,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - NODE_ENV=${NODE_ENV:-production}
-      - PORT=3032
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3032/health" ]
       interval: 30s

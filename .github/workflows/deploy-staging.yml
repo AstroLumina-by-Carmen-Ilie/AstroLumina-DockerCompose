@@ -1,0 +1,29 @@
+on:
+  repository_dispatch:
+    types: [deploy-staging]
+
+jobs:
+  deploy:
+    concurrency:
+      group: staging-deploy
+      cancel-in-progress: false
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update tag și deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd ./staging
+
+            SERVICE=${{ github.event.client_payload.service }}
+            TAG=${{ github.event.client_payload.tag }}
+            DOCKER_REGISTRY="ghcr.io/astrolumina-by-carmen-ilie"
+
+            sed -i "s|${SERVICE^^}_TAG=.*|${SERVICE^^}_TAG=${TAG}|" .env.staging
+
+            docker compose pull ${DOCKER_REGISTRY}/${SERVICE}:${TAG}
+            docker compose up -d

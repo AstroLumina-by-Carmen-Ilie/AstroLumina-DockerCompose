@@ -1,0 +1,149 @@
+http:
+  middlewares:
+    dashboard-auth:
+      basicAuth:
+        users:
+          - "${TRAEFIK_DASHBOARD_AUTH}"
+
+    to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    compress:
+      compress: {}
+
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customResponseHeaders:
+          X-Robots-Tag: "noindex, nofollow"
+
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1s
+
+    strip-astrology:
+      stripPrefix:
+        prefixes:
+          - "/api/astrology"
+
+    strip-payment:
+      stripPrefix:
+        prefixes:
+          - "/api/payment"
+
+    strip-booking:
+      stripPrefix:
+        prefixes:
+          - "/api/booking"
+
+  routers:
+    catch-http:
+      entryPoints: [web]
+      rule: "Host(`astrolumina.ro`)"
+      middlewares: [to-https]
+      service: noop
+
+    astrology:
+      entryPoints: [websecure]
+      rule: "Host(`astrolumina.ro`) && PathPrefix(`/api/astrology`)"
+      middlewares:
+        - security-headers
+        - compress
+        - strip-astrology
+      tls:
+        certResolver: letsencrypt
+      service: astrology-blue
+
+    booking:
+      entryPoints: [websecure]
+      rule: "Host(`astrolumina.ro`) && PathPrefix(`/api/booking`)"
+      middlewares:
+        - security-headers
+        - compress
+        - strip-booking
+      tls:
+        certResolver: letsencrypt
+      service: booking-blue
+
+    payment:
+      entryPoints: [websecure]
+      rule: "Host(`astrolumina.ro`) && PathPrefix(`/api/payment`)"
+      middlewares:
+        - security-headers
+        - compress
+        - strip-payment
+      tls:
+        certResolver: letsencrypt
+      service: payment-blue
+
+    frontend:
+      rule: "Host(`astrolumina.ro`)"
+      entryPoints: [websecure]
+      middlewares:
+        - security-headers
+        - compress
+      tls:
+        certResolver: letsencrypt
+      service: frontend-blue
+
+    dashboard:
+      entryPoints: [websecure]
+      rule: "Host(`dashboard.astrolumina.ro`)"
+      middlewares:
+        - dashboard-auth
+      tls:
+        certResolver: letsencrypt
+      service: api@internal
+
+  services:
+    astrology-blue:
+      loadBalancer:
+        servers:
+          - url: "http://astrology-api-blue:3031"
+
+    astrology-green:
+      loadBalancer:
+        servers:
+          - url: "http://astrology-api-green:3031"
+
+    booking-blue:
+      loadBalancer:
+        servers:
+          - url: "http://booking-api-blue:3033"
+
+    booking-green:
+      loadBalancer:
+        servers:
+          - url: "http://booking-api-green:3033"
+
+    payment-blue:
+      loadBalancer:
+        servers:
+          - url: "http://payment-api-blue:3032"
+
+    payment-green:
+      loadBalancer:
+        servers:
+          - url: "http://payment-api-green:3032"
+
+    frontend-blue:
+      loadBalancer:
+        servers:
+          - url: "http://frontend-blue:80"
+
+    frontend-green:
+      loadBalancer:
+        servers:
+          - url: "http://frontend-green:80"
+
+    noop:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1"

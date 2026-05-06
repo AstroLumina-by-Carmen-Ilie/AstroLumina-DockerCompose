@@ -1,0 +1,36 @@
+on:
+  repository_dispatch:
+    types: [deploy-production]
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag de deployat pe prod'
+        required: true
+
+jobs:
+  deploy:
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update tag și deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd ./production
+
+            SERVICE=${{ github.event.client_payload.service }}
+            TAG=${{ github.event.client_payload.tag }}
+            DOCKER_REGISTRY="ghcr.io/astrolumina-by-carmen-ilie"
+
+            sed -i "s|${SERVICE^^}_TAG=.*|${SERVICE^^}_TAG=${TAG}|" .env.production
+
+            docker compose pull ${DOCKER_REGISTRY}/${SERVICE}:${TAG}
+
+            docker compose up -d

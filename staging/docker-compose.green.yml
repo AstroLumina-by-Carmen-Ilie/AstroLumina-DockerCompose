@@ -1,0 +1,89 @@
+services:
+  frontend-green:
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-frontend:${FRONTEND_TAG#v}
+    restart: unless-stopped
+    networks:
+      - astrolumina
+
+  astrology-api-green:
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-astrologyapi:${ASTROLOGY_API_TAG#v}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3031
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3031/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.125'
+          memory: 128M
+    networks:
+      - astrolumina
+
+  booking-api-green:
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-bookingapi:${BOOKING_API_TAG#v}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3033
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3033/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.125'
+          memory: 128M
+    networks:
+      - astrolumina
+
+  payment-api-green:
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-paymentapi:${PAYMENT_API_TAG#v}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3032
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3032/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.125'
+          memory: 128M
+    networks:
+      - astrolumina
+
+networks:
+  astrolumina:
+    external: true
+    name: astrolumina
