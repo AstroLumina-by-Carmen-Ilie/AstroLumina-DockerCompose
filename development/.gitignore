@@ -27,6 +27,11 @@ workers
 .env
 .env.production
 .env.local
+.env.astrology-api
+.env.booking-api
+.env.payment-api
+.env.frontend
+
 !.env.example
 
 # Editor directories and files

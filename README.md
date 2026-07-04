@@ -8,12 +8,12 @@ Containerize cu Traefik reverse proxy + Let's Encrypt SSL.
 
 ### Servicii
 
-| Serviciu | Port | URL |
-|----------|------|-----|
-| Frontend | 80 | http://astrolumina.localhost |
-| AstrologyAPI | 3031 | /astrology/* |
-| BookingAPI | 3033 | /bookings/* |
-| PaymentAPI | 3032 | /payment/* |
+| Serviciu          | Port | URL                           |
+| ----------------- | ---- | ----------------------------- |
+| Frontend          | 80   | http://astrolumina.localhost  |
+| AstrologyAPI      | 3031 | /astrology/\*                 |
+| BookingAPI        | 3033 | /bookings/\*                  |
+| PaymentAPI        | 3032 | /payment/\*                   |
 | Traefik Dashboard | 8080 | http://traefik.localhost:8080 |
 
 ### Run

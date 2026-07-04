@@ -109,5 +109,3 @@ jobs:
               # "service": "astrolumina-bookingapi",
               "tag": "${{ needs.version.outputs.version }}"
             }
-
-          

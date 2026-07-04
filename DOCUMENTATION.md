@@ -25,84 +25,84 @@ services:
 **Ce este**: Fișierul principal care definește TOATE containerele și relațiile dintre ele.
 
 ```yaml
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Traefik - Reverse Proxy + SSL (Let's Encrypt)
-  # ─────────────────────────────────────────────────────────────────────────────
-  traefik:
+# ─────────────────────────────────────────────────────────────────────────────
+# Traefik - Reverse Proxy + SSL (Let's Encrypt)
+# ─────────────────────────────────────────────────────────────────────────────
+traefik:
 ```
 
 **Ce este**: Serviciul Traefik - reverse proxy care face routing între containere.
 
 ```yaml
-    image: traefik:v3.1
+image: traefik:v3.1
 ```
 
 **Ce face**: Folosește imaginea oficială Traefik v3.1 din Docker Hub.
 **De ce**: Nu trebuie să construim noi imaginea.
 
 ```yaml
-    container_name: astrolumina-traefik
+container_name: astrolumina-traefik
 ```
 
 **Ce face**: Numele containerului (vizibil în `docker ps`).
 **De ce**: Ușor de identificat în logs/monitoring.
 
 ```yaml
-    restart: unless-stopped
+restart: unless-stopped
 ```
 
 **Ce face**: Auto-restart dacă containerul crapa sau serverul repornește.
 **De ce**: Disponibilitate automată fără intervenție manuală.
 
 ```yaml
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro   # Docker socket - pentru service discovery
-      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro  # Config static
-      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro    # Config dinamic (middleware)
-      - ./traefik/certs:/certs:ro                     # Certificate SSL (auto-generated)
-      - ./traefik/logs:/var/log/traefik              # Loguri
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock:ro # Docker socket - pentru service discovery
+  - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro # Config static
+  - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro # Config dinamic (middleware)
+  - ./traefik/certs:/certs:ro # Certificate SSL (auto-generated)
+  - ./traefik/logs:/var/log/traefik # Loguri
 ```
 
 **Ce face**: **Volume** = foldere partajate între calculatorul gazdă și container.
 
-| Volum | Scop |
-|------|------|
+| Volum                  | Scop                                      |
+| ---------------------- | ----------------------------------------- |
 | `/var/run/docker.sock` | Docker API - Traefik descoperă containere |
-| `traefik.yml` | Config Traefik (read-only) |
-| `dynamic.yml` | Middleware adițional |
-| `/certs` | Certificate Let's Encrypt |
-| `/var/log/traefik` | Loguri |
+| `traefik.yml`          | Config Traefik (read-only)                |
+| `dynamic.yml`          | Middleware adițional                      |
+| `/certs`               | Certificate Let's Encrypt                 |
+| `/var/log/traefik`     | Loguri                                    |
 
 `:ro` = read-only (containerul poate citi, nu scrie).
 
 ```yaml
-    networks:
-      - astrolumina
+networks:
+  - astrolumina
 ```
 
 **Ce face**: Conectează containerul la rețeaua Docker dedicată.
 **De ce**: Containerele comunică între ele prin această rețea, nu direct.
 
 ```yaml
-    ports:
-      - "80:80"      # HTTP
-      - "443:443"    # HTTPS  
-      - "8080:8080"  # Traefik Dashboard
+ports:
+  - "80:80" # HTTP
+  - "443:443" # HTTPS
+  - "8080:8080" # Traefik Dashboard
 ```
 
 **Ce face**: **Port mapping** = `gazdă:container`.
 
-| Port Gazdă | Port Container | Serviciu |
-|-----------|---------------|----------|
-| 80 | 80 | HTTP (Traefik) |
-| 443 | 443 | HTTPS (Traefik) |
-| 8080 | 8080 | Traefik Dashboard |
+| Port Gazdă | Port Container | Serviciu          |
+| ---------- | -------------- | ----------------- |
+| 80         | 80             | HTTP (Traefik)    |
+| 443        | 443            | HTTPS (Traefik)   |
+| 8080       | 8080           | Traefik Dashboard |
 
 **NOTĂ**: Porturile sunt pe gazdă (calculatorul tău), nu în container.
 
 ```yaml
-    environment:
-      - TZ=Europe/Bucharest
+environment:
+  - TZ=Europe/Bucharest
 ```
 
 **Ce face**: Setează timezone pentru loguri.
@@ -119,35 +119,35 @@ services:
 
 **Ce face**: **Labels** = instrucțiuni pentru Traefik să descopere containerul.
 
-| Label | Ce face |
-|-------|--------|
-| `traefik.enable=true` |-activează serviciul în Traefik |
-| `dashboard.rule=Host(...)` | Condiție routing (când hostname e traefik.localhost) |
-| `dashboard.service=api@internal` | Folosește API intern Traefik |
-| `entrypoints=websecure` | Folosește HTTPS |
-| `tls=true` | Enable TLS |
+| Label                            | Ce face                                              |
+| -------------------------------- | ---------------------------------------------------- |
+| `traefik.enable=true`            | -activează serviciul în Traefik                      |
+| `dashboard.rule=Host(...)`       | Condiție routing (când hostname e traefik.localhost) |
+| `dashboard.service=api@internal` | Folosește API intern Traefik                         |
+| `entrypoints=websecure`          | Folosește HTTPS                                      |
+| `tls=true`                       | Enable TLS                                           |
 
 ---
 
 ### Frontend Service
 
 ```yaml
-  frontend:
-    build:
-      context: ./AstroLumina-Frontend
-      dockerfile: Dockerfile
+frontend:
+  build:
+    context: ./AstroLumina-Frontend
+    dockerfile: Dockerfile
 ```
 
 **Ce face**: Build image din Dockerfile local (nu imagine pre-compilată).
 
-| Parametru | Scop |
-|----------|------|
-| `context` | Folder-ul cu Dockerfile |
-| `dockerfile` | Numele fișierului |
+| Parametru    | Scop                    |
+| ------------ | ----------------------- |
+| `context`    | Folder-ul cu Dockerfile |
+| `dockerfile` | Numele fișierului       |
 
 ```yaml
-    expose:
-      - "80"
+expose:
+  - "80"
 ```
 
 **Ce face**: Expune portul 80 către alte containere (NU către gazdă).
@@ -162,46 +162,46 @@ services:
       - "traefik.http.routers.frontend.tls=true"
 ```
 
-| Label | Ce face |
-|-------|--------|
+| Label                              | Ce face                                     |
+| ---------------------------------- | ------------------------------------------- |
 | `rule=Host(astrolumina.localhost)` | Când cineva accesează astrolumina.localhost |
-| `entrypoints=web,websecure` | Atât HTTP cât și HTTPS |
-| `server.port=80` | Portul din containerul Frontend |
-| `tls=true` | Enable TLS |
+| `entrypoints=web,websecure`        | Atât HTTP cât și HTTPS                      |
+| `server.port=80`                   | Portul din containerul Frontend             |
+| `tls=true`                         | Enable TLS                                  |
 
 ---
 
 ### AstrologyAPI Service
 
 ```yaml
-  astrology-api:
-    build:
-      context: ./AstroLumina-AstrologyAPI
-      dockerfile: Dockerfile
-    container_name: astrolumina-astrology-api
-    restart: unless-stopped
-    
-    expose:
-      - "3031"
-    
-    environment:
-      - NODE_ENV=production
-      - PORT=3031
-      - ASTROLOGER_API_KEY=${ASTROLOGER_API_KEY}
-      - ASTROLOGER_API_URL=https://astrology-api.p.rapidapi.com
-      - CORS_ORIGINS=https://astrolumina.com,https://www.astrolumina.com
-      - SENTRY_DSN=${SENTRY_DSN}
+astrology-api:
+  build:
+    context: ./AstroLumina-AstrologyAPI
+    dockerfile: Dockerfile
+  container_name: astrolumina-astrology-api
+  restart: unless-stopped
+
+  expose:
+    - "3031"
+
+  environment:
+    - NODE_ENV=production
+    - PORT=3031
+    - ASTROLOGER_API_KEY=${ASTROLOGER_API_KEY}
+    - ASTROLOGER_API_URL=https://astrology-api.p.rapidapi.com
+    - CORS_ORIGINS=https://astrolumina.com,https://www.astrolumina.com
+    - SENTRY_DSN=${SENTRY_DSN}
 ```
 
 **Ce face**: Variabile de mediu (env vars).
 
-| Variabilă | Scop | Exemplu |
-|----------|------|--------|
-| `NODE_ENV` | Modul de funcționare | production |
-| `PORT` | Portul serverului | 3031 |
-| `ASTROLOGER_API_KEY` | Cheie API externă | (din .env) |
-| `CORS_ORIGINS` | Origini permise | https://... |
-| `SENTRY_DSN` | Monitoring Sentry | (din .env) |
+| Variabilă            | Scop                 | Exemplu     |
+| -------------------- | -------------------- | ----------- |
+| `NODE_ENV`           | Modul de funcționare | production  |
+| `PORT`               | Portul serverului    | 3031        |
+| `ASTROLOGER_API_KEY` | Cheie API externă    | (din .env)  |
+| `CORS_ORIGINS`       | Origini permise      | https://... |
+| `SENTRY_DSN`         | Monitoring Sentry    | (din .env)  |
 
 `${VARIABILA}` = citește din fișierul .env.
 
@@ -215,10 +215,10 @@ services:
       - "traefik.http.routers.astrology.tls=true"
 ```
 
-| Label | Ce face |
-|-------|--------|
-| `rule=Host(...) && PathPrefix(/astrology)` | Routing: api.astrolumina.com/astrology/* |
-| `stripprefix.prefix=/astrology` | Șterge /astrology din path înainte să trimită la container |
+| Label                                      | Ce face                                                    |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| `rule=Host(...) && PathPrefix(/astrology)` | Routing: api.astrolumina.com/astrology/\*                  |
+| `stripprefix.prefix=/astrology`            | Șterge /astrology din path înainte să trimită la container |
 
 **Exemplu**: `/astrology/horoscope` → container primește `/horoscope`
 
@@ -235,10 +235,10 @@ networks:
 
 **Ce face**: Definește rețeaua privată pentru containere.
 
-| Parametru | Scop |
-|----------|------|
+| Parametru        | Scop                   |
+| ---------------- | ---------------------- |
 | `driver: bridge` | Driver standard Docker |
-| `name` | Numele rețelei |
+| `name`           | Numele rețelei         |
 
 **NOTĂ**: Rețeaua e creată automat de docker compose.
 
@@ -253,15 +253,15 @@ networks:
 # =============================================================================
 
 global:
-  checkNewVersion: true       # Verifică update-uri la pornire
-  sendAnonymousUsage: false   # NU trimite date anonime
+  checkNewVersion: true # Verifică update-uri la pornire
+  sendAnonymousUsage: false # NU trimite date anonime
 ```
 
 ```yaml
 log:
-  level: INFO                # DEBUG, INFO, WARN, ERROR
+  level: INFO # DEBUG, INFO, WARN, ERROR
   filePath: /var/log/traefik/traefik.log
-  format: json            # json sau common
+  format: json # json sau common
 ```
 
 ```yaml
@@ -272,8 +272,8 @@ accessLog:
 
 ```yaml
 api:
-  dashboard: true           # Activează dashboard
-  insecure: true            # Fără auth (doar pentru dezvoltare!)
+  dashboard: true # Activează dashboard
+  insecure: true # Fără auth (doar pentru dezvoltare!)
 ```
 
 **ATENȚIE**: `insecure: true` = oricine poate accesa dashboard. În producție, pune auth.
@@ -292,19 +292,19 @@ entryPoints:
 
 **Ce face**: Redirect HTTP → HTTPS automat.
 
-| Parametru | Scop |
-|----------|------|
-| `address: ":80"` | Listen pe portul 80 |
-| `redirections.entryPoint.to: websecure` | Spre HTTPS |
-| `scheme: https` | Folosește HTTPS |
-| `permanent: true` | 301 redirect (permanent) |
+| Parametru                               | Scop                     |
+| --------------------------------------- | ------------------------ |
+| `address: ":80"`                        | Listen pe portul 80      |
+| `redirections.entryPoint.to: websecure` | Spre HTTPS               |
+| `scheme: https`                         | Folosește HTTPS          |
+| `permanent: true`                       | 301 redirect (permanent) |
 
 ```yaml
-  websecure:
-    address: ":443"
-    http:
-      tls:
-        certResolver: letsencrypt
+websecure:
+  address: ":443"
+  http:
+    tls:
+      certResolver: letsencrypt
 ```
 
 **Ce face**: HTTPS cu TLS automat prin Let's Encrypt.
@@ -323,10 +323,10 @@ providers:
 
 **Ce face**: **Providers** = surse de configurare.
 
-| Provider | Scop |
-|----------|------|
+| Provider | Scop                          |
+| -------- | ----------------------------- |
 | `docker` | Citește labels din containere |
-| `file` | Citește config dinamic |
+| `file`   | Citește config dinamic        |
 
 ```yaml
 certificatesResolvers:
@@ -341,12 +341,12 @@ certificatesResolvers:
 
 **Ce face**: Let's Encrypt pentru SSL automat.
 
-| Parametru | Scop |
-|----------|------|
-| `email` | Email pentru notificări |
-| `storage` | Unde salvează certurile |
+| Parametru       | Scop                        |
+| --------------- | --------------------------- |
+| `email`         | Email pentru notificări     |
+| `storage`       | Unde salvează certurile     |
 | `httpChallenge` | Verifică domeniul prin HTTP |
-| `caServer` | Server LE pentru producție |
+| `caServer`      | Server LE pentru producție  |
 
 ---
 
@@ -362,24 +362,24 @@ http:
 **Ce face**: Comprimă răspunsurile gzip.
 
 ```yaml
-    security-headers:
-      headers:
-        frameDeny: true                    # Previne clickjacking
-        contentTypeNosniff: true           # Previne MIME sniffing
-        browserXssFilter: true            # Protecție XSS vechi
-        referrerPolicy: "strict-origin-when-cross-origin"
-        customResponseHeaders:
-          X-Robots-Tag: "noindex, nofollow"
+security-headers:
+  headers:
+    frameDeny: true # Previne clickjacking
+    contentTypeNosniff: true # Previne MIME sniffing
+    browserXssFilter: true # Protecție XSS vechi
+    referrerPolicy: "strict-origin-when-cross-origin"
+    customResponseHeaders:
+      X-Robots-Tag: "noindex, nofollow"
 ```
 
 **Ce face**: Headers de securitate (OWASP).
 
 ```yaml
-    rate-limit:
-      rateLimit:
-        average: 100        # 100 cereri
-        burst: 50           # peak de 50
-        period: 1s         # pe secundă
+rate-limit:
+  rateLimit:
+    average: 100 # 100 cereri
+    burst: 50 # peak de 50
+    period: 1s # pe secundă
 ```
 
 **Ce face**: Rate limiting împotriva atacurilor.
@@ -398,10 +398,10 @@ FROM node:22-alpine AS builder
 
 **Ce face**: **Stage 1** - Build aplicația React.
 
-| Parte | Scop |
-|------|------|
+| Parte            | Scop                       |
+| ---------------- | -------------------------- |
 | `node:22-alpine` | Node.js 22 pe Alpine Linux |
-| `AS builder` | Numele stage-ului |
+| `AS builder`     | Numele stage-ului          |
 
 ```dockerfile
 WORKDIR /app
@@ -479,13 +479,13 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 **Ce face**: Health check - verifică dacă serverul e alive.
 
-| Parametru | Scop |
-|----------|------|
-| `--interval` | Cât de des verifică |
-| `--timeout` | Timeout per verificare |
-| `--start-period` | Așteaptă la pornire |
-| `--retries` | Încercări înainte să marcheze unhealthy |
-| `wget --spider` | Verifică fără să downloadeze |
+| Parametru        | Scop                                    |
+| ---------------- | --------------------------------------- |
+| `--interval`     | Cât de des verifică                     |
+| `--timeout`      | Timeout per verificare                  |
+| `--start-period` | Așteaptă la pornire                     |
+| `--retries`      | Încercări înainte să marcheze unhealthy |
+| `wget --spider`  | Verifică fără să downloadeze            |
 
 ```dockerfile
 CMD ["nginx", "-g", "daemon off;"]
@@ -547,8 +547,8 @@ http {
     gzip_vary on;
     gzip_proxied any;
     gzip_comp_level 6;
-    gzip_types text/plain text/css text/xml application/json 
-               application/javascript application/rss+xml 
+    gzip_types text/plain text/css text/xml application/json
+               application/javascript application/rss+xml
                application/atom+xml image/svg+xml;
 ```
 
@@ -598,10 +598,10 @@ http {
 
 **Ce face**: **SPA Fallback** - React Router.
 
-| Ce face | Exemplu |
-|--------|---------|
-| `$uri` | Cerere directă |
-| `$uri/` | Încearcă cu / |
+| Ce face       | Exemplu           |
+| ------------- | ----------------- |
+| `$uri`        | Cerere directă    |
+| `$uri/`       | Încearcă cu /     |
 | `/index.html` | Fallback la index |
 
 `/about` → nu există → servește `/index.html` → React Router face routing.
@@ -749,13 +749,13 @@ docker compose down
 
 ## Troubleshooting
 
-| Problemă | Soluție |
-|----------|--------|
-| Container nu pornește | `docker compose logs <serviciu>` |
-| Nu se networking | Verifică labels Traefik |
-| SSL nu merge | Verifică `/certs/acme.json` |
-| Frontend 404 | Verifică SPA fallback în nginx.conf |
-| CORS error | Verifică `CORS_ORIGINS` env |
+| Problemă              | Soluție                             |
+| --------------------- | ----------------------------------- |
+| Container nu pornește | `docker compose logs <serviciu>`    |
+| Nu se networking      | Verifică labels Traefik             |
+| SSL nu merge          | Verifică `/certs/acme.json`         |
+| Frontend 404          | Verifică SPA fallback în nginx.conf |
+| CORS error            | Verifică `CORS_ORIGINS` env         |
 
 ---
 

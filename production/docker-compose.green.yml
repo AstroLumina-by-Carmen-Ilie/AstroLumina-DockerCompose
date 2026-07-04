@@ -14,7 +14,7 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=3031
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3031/health" ]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3031/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -23,10 +23,10 @@ services:
       replicas: 2
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 1G
         reservations:
-          cpus: '0.125'
+          cpus: "0.125"
           memory: 128M
     networks:
       - astrolumina
@@ -40,7 +40,7 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=3033
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3033/health" ]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3033/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -49,10 +49,10 @@ services:
       replicas: 2
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 1G
         reservations:
-          cpus: '0.125'
+          cpus: "0.125"
           memory: 128M
     networks:
       - astrolumina
@@ -66,7 +66,7 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=3032
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3032/health" ]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3032/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -75,10 +75,10 @@ services:
       replicas: 3
       resources:
         limits:
-          cpus: '1'
+          cpus: "1"
           memory: 1G
         reservations:
-          cpus: '0.125'
+          cpus: "0.125"
           memory: 128M
     networks:
       - astrolumina

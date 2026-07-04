@@ -1,57 +1,99 @@
 services:
   frontend:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-frontend:${FRONTEND_TAG#v}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-frontend:${FRONTEND_TAG}
     restart: unless-stopped
+    depends_on:
+      - astrology-api
+      - booking-api
+      - payment-api
+    env_file:
+      - .env
+      - .env.frontend
     ports:
-      - "5173:80"
+      - "8080:80"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
     networks:
       - astrolumina-dev
 
   astrology-api:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-astrologyapi:${ASTROLOGY_API_TAG#v}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-astrologyapi:${ASTROLOGY_API_TAG}
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - PORT=3031
+      - .env.astrology-api
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3031/health" ]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3031/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-    networks:
-      - astrolumina-dev
-
-  booking-api:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-bookingapi:${BOOKING_API_TAG#v}
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - PORT=3033
-    healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3033/health" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.125"
+          memory: 128M
     networks:
       - astrolumina-dev
 
   payment-api:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-paymentapi:${PAYMENT_API_TAG#v}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-paymentapi:${PAYMENT_API_TAG}
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - NODE_ENV=${NODE_ENV:-development}
-      - PORT=3032
+      - .env.payment-api
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3032/health" ]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3032/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.125"
+          memory: 128M
+    networks:
+      - astrolumina-dev
+
+  booking-api:
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-bookingapi:${BOOKING_API_TAG}
+    restart: unless-stopped
+    env_file:
+      - .env
+      - .env.booking-api
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3033/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.125"
+          memory: 128M
     networks:
       - astrolumina-dev
 
