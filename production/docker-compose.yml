@@ -16,6 +16,6 @@ services:
       - astrolumina-production
 
 networks:
-  astrolumina:
-    name: astrolumina
+  astrolumina-production:
+    name: astrolumina-production
     driver: bridge

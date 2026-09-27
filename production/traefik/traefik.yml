@@ -13,8 +13,10 @@ accessLog:
 
 api:
   dashboard: true
-  insecure: true
+  insecure: false
 
+# Production: HTTP on :80 (only for redirect + ACME challenge),
+# HTTPS on :443 with simple Let's Encrypt (httpChallenge).
 entryPoints:
   web:
     address: ":80"

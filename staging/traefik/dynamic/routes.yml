@@ -1,3 +1,9 @@
+# =============================================================================
+# Staging routes — HTTP without TLS. The LIVE color is switched here:
+# on each router, the `service:` field points to *-blue or *-green.
+# Traefik reloads automatically (watch: true), no restart needed.
+# Host: staging.astrolumina.ro
+# =============================================================================
 http:
   middlewares:
     compress:
@@ -41,7 +47,7 @@ http:
         - security-headers
         - compress
         - strip-astrology
-      service: astrology-blue
+      service: astrology-blue # LIVE: change to astrology-green to switch
 
     booking:
       entryPoints: [web]
@@ -50,7 +56,7 @@ http:
         - security-headers
         - compress
         - strip-booking
-      service: booking-blue
+      service: booking-blue # LIVE: change to booking-green to switch
 
     payment:
       entryPoints: [web]
@@ -59,7 +65,7 @@ http:
         - security-headers
         - compress
         - strip-payment
-      service: payment-blue
+      service: payment-blue # LIVE: change to payment-green to switch
 
     frontend:
       entryPoints: [web]
@@ -67,7 +73,7 @@ http:
       middlewares:
         - security-headers
         - compress
-      service: frontend-blue
+      service: frontend-blue # LIVE: change to frontend-green to switch
 
     dashboard:
       entryPoints: [web]

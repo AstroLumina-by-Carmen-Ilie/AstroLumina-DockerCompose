@@ -1,3 +1,9 @@
+# =============================================================================
+# Production routes — HTTPS with Let's Encrypt. The LIVE color is switched here:
+# on each router, the `service:` field points to *-blue or *-green.
+# Traefik reloads automatically (watch: true), no restart needed.
+# Host: astrolumina.ro (frontend + /api/*), dashboard.astrolumina.ro
+# =============================================================================
 http:
   middlewares:
     dashboard-auth:
@@ -59,7 +65,7 @@ http:
         - strip-astrology
       tls:
         certResolver: letsencrypt
-      service: astrology-blue
+      service: astrology-blue # LIVE: change to astrology-green to switch
 
     booking:
       entryPoints: [websecure]
@@ -70,7 +76,7 @@ http:
         - strip-booking
       tls:
         certResolver: letsencrypt
-      service: booking-blue
+      service: booking-blue # LIVE: change to booking-green to switch
 
     payment:
       entryPoints: [websecure]
@@ -81,7 +87,7 @@ http:
         - strip-payment
       tls:
         certResolver: letsencrypt
-      service: payment-blue
+      service: payment-blue # LIVE: change to payment-green to switch
 
     frontend:
       rule: "Host(`astrolumina.ro`)"
@@ -91,7 +97,7 @@ http:
         - compress
       tls:
         certResolver: letsencrypt
-      service: frontend-blue
+      service: frontend-blue # LIVE: change to frontend-green to switch
 
     dashboard:
       entryPoints: [websecure]

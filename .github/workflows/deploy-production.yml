@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Tag de deployat pe prod"
+        description: "Tag to deploy on prod"
         required: true
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update tag și deploy
+      - name: Update tag and deploy
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.PRODUCTION_HOST }}

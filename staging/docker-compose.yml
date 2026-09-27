@@ -10,12 +10,11 @@ services:
       - ./traefik/logs:/var/log/traefik
     ports:
       - "80:80"
-      - "443:443"
       - "8080:8080"
     networks:
       - astrolumina-staging
 
 networks:
-  astrolumina:
-    name: astrolumina
+  astrolumina-staging:
+    name: astrolumina-staging
     driver: bridge

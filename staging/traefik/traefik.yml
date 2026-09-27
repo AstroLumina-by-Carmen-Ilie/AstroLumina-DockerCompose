@@ -15,21 +15,12 @@ api:
   dashboard: true
   insecure: true
 
+# Staging: no TLS — HTTP only on :80 + dashboard on :8080
 entryPoints:
   web:
     address: ":80"
-  websecure:
-    address: ":443"
 
 providers:
   file:
     filename: /etc/traefik/dynamic/routes.yml
     watch: true
-
-certificatesResolvers:
-  letsencrypt:
-    acme:
-      email: admin@astrolumina.com
-      storage: /certs/acme.json
-      httpChallenge:
-        entryPoint: web

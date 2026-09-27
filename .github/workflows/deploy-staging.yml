@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update tag și deploy
+      - name: Update tag and deploy
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.STAGING_HOST }}
