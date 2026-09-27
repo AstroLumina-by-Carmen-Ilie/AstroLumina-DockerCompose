@@ -1,12 +1,12 @@
 services:
   frontend-green:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-frontend:${FRONTEND_TAG#v}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-frontend:${FRONTEND_DOCKER_IMAGE_TAG#v}
     restart: unless-stopped
     networks:
       - astrolumina
 
   astrology-api-green:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-astrologyapi:${ASTROLOGY_API_TAG#v}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-astrologyapi:${ASTROLOGY_API_DOCKER_IMAGE_TAG#v}
     restart: unless-stopped
     env_file:
       - .env
@@ -32,7 +32,7 @@ services:
       - astrolumina
 
   booking-api-green:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-bookingapi:${BOOKING_API_TAG#v}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-bookingapi:${BOOKING_API_DOCKER_IMAGE_TAG#v}
     restart: unless-stopped
     env_file:
       - .env
@@ -58,7 +58,7 @@ services:
       - astrolumina
 
   payment-api-green:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-paymentapi:${PAYMENT_API_TAG#v}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-paymentapi:${PAYMENT_API_DOCKER_IMAGE_TAG#v}
     restart: unless-stopped
     env_file:
       - .env

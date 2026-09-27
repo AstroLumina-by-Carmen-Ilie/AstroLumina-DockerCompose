@@ -42,6 +42,10 @@ curl http://localhost:3033/health
 curl http://localhost:3032/health
 ```
 
+### Test
+
+
+
 ### Referințe
 
 - DOCUMENTATION.md - Documentație tehnică detaliată
