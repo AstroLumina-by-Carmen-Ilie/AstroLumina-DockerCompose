@@ -47,9 +47,8 @@ graph TD
     PRD --> PRD_T["traefik/<br/>traefik.yml + dynamic/routes.yml"]
     PRD --> PRD_E[".env.example<br/>+ TRAEFIK_DASHBOARD_AUTH"]
 
-    GH --> GH_S["deploy-staging.yml<br/>repository_dispatch: deploy-staging"]
-    GH --> GH_P["deploy-production.yml<br/>repository_dispatch: deploy-production"]
-    GH --> GH_C["ci.yml / build-deploy.yml"]
+    GH --> GH_S["deploy-staging.yml<br/>dispatch: deploy-staging"]
+    GH --> GH_P["deploy-production.yml<br/>dispatch: deploy-production"]
 ```
 
 Each environment directory is self-contained: `cd` into it and run
@@ -316,17 +315,42 @@ take it down, so recovery is one edit away.
 
 ```mermaid
 flowchart LR
-    APP["App repo<br/>(Frontend / *API)<br/>image published to GHCR"] -->|repository_dispatch| WF["This repo: deploy workflow"]
+    APP["App repo<br/>(Frontend / *API)<br/>image published to GHCR"] -->|repository_dispatch<br/>+ manual trigger| WF["This repo: deploy workflow<br/>(staging / production)"]
     WF --> SSH["SSH into env host<br/>(appleboy/ssh-action)"]
-    SSH --> SED["Update image tag in env file"]
-    SED --> PULL["docker compose pull"]
-    PULL --> UP["docker compose up -d"]
+    SSH --> MAP["Map image name → .env variable<br/>+ blue/green services"]
+    MAP --> SED["Pin tag in .env<br/>(verified with grep)"]
+    SED --> PULL["compose pull + up -d<br/>(all 3 -f files)"]
+    PULL --> SMOKE["Smoke test via Traefik<br/>(retry 12 × 10s)"]
 ```
 
-- `deploy-staging.yml` — triggered by `repository_dispatch` type
-  `deploy-staging`; updates the tag and redeploys on the staging host.
-- `deploy-production.yml` — same pattern for the production host.
-- `ci.yml` / `build-deploy.yml` — CI and image build/publish pipelines.
+**Dispatch contract** — app repos trigger a deploy by sending a
+`repository_dispatch` event to this repo (needs a token with `repo` scope):
+
+| Event type | Workflow | Target host |
+|---|---|---|
+| `deploy-staging` | `deploy-staging.yml` | staging |
+| `deploy-production` | `deploy-production.yml` | production |
+
+Payload (`client_payload`), or the equivalent `workflow_dispatch` inputs
+for manual runs from the Actions tab:
+
+```json
+{
+  "service": "astrolumina-frontend",
+  "tag": "v1.4.2"
+}
+```
+
+Valid `service` values (= GHCR image names): `astrolumina-frontend`,
+`astrolumina-astrologyapi`, `astrolumina-bookingapi`, `astrolumina-paymentapi`.
+Each maps to its `*_DOCKER_IMAGE_TAG` variable in `<env>/.env` and to the
+matching `-blue`/`-green` compose services, which are pulled and recreated.
+Both colors get the new tag; the blue-green switch itself stays manual
+(see [section 7](#7-blue-green-deployments)).
+
+**Required secrets** (per environment): `STAGING_HOST` / `PRODUCTION_HOST`
+plus `STAGING_SSH_KEY` / `PRODUCTION_SSH_KEY`.
+
 - `refresh.sh` (repo root) — local helper that runs `docker compose down`
   across the four app repos via Doppler; unrelated to server deploys.
 
