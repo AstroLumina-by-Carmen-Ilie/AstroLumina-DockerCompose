@@ -27,7 +27,7 @@ services:
       - "80"
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:80" ]
-      interval: 30s
+      interval: 5m
       timeout: 10s
       retries: 3
       start_period: 40s
@@ -65,7 +65,7 @@ services:
       - "${ASTROLOGY_API_SERVER_PORT}"
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3031/health" ]
-      interval: 30s
+      interval: 5m
       timeout: 10s
       retries: 3
       start_period: 40s
@@ -107,7 +107,7 @@ services:
       - "${BOOKING_API_SERVER_PORT}"
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3033/health" ]
-      interval: 30s
+      interval: 5m
       timeout: 10s
       retries: 3
       start_period: 40s
@@ -150,7 +150,7 @@ services:
       - "${PAYMENT_API_SERVER_PORT}"
     healthcheck:
       test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3032/health" ]
-      interval: 30s
+      interval: 5m
       timeout: 10s
       retries: 3
       start_period: 40s

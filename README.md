@@ -197,7 +197,7 @@ Resource budgets (identical in all environments):
 
 Every service pulls on every start (`pull_policy: always`), restarts
 automatically (`restart: unless-stopped`), and has a `wget --spider`
-healthcheck (30s interval, 10s timeout, 3 retries, 40s start period).
+healthcheck (5m interval, 10s timeout, 3 retries, 40s start period).
 
 ---
 
