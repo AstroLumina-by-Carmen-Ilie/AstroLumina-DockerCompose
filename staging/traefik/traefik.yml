@@ -1,0 +1,26 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+  filePath: /var/log/traefik/traefik.log
+  format: json
+
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+
+api:
+  dashboard: true
+  insecure: true
+
+# Staging: no TLS — HTTP only on :80 + dashboard on :8080
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  file:
+    filename: /etc/traefik/dynamic/routes.yml
+    watch: true

@@ -1,0 +1,54 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Certs
+certs
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+*.local
+
+# Cloudflare
+.wrangler
+workers
+*.wasm
+
+# Environment variables
+.env
+.env.production
+.env.local
+.env.astrology-api
+.env.booking-api
+.env.payment-api
+.env.frontend
+
+!.env.example
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+Thumbs.db
+
+# Agent guidelines (generated per session)
+AGENTS.md
+.planning/
+

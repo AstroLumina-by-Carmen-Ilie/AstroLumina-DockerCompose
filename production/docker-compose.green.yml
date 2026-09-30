@@ -1,0 +1,167 @@
+services:
+  frontend-green:
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-frontend:${FRONTEND_DOCKER_IMAGE_TAG}
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      - astrology-api-green
+      - booking-api-green
+      - payment-api-green
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - ASTROLOGY_API_SERVER_PORT=${ASTROLOGY_API_SERVER_PORT}
+      - ASTROLOGY_API_SERVER_DNS=${ASTROLOGY_API_SERVER_DNS}
+      - BOOKING_API_SERVER_PORT=${BOOKING_API_SERVER_PORT}
+      - BOOKING_API_SERVER_DNS=${BOOKING_API_SERVER_DNS}
+      - PAYMENT_API_SERVER_PORT=${PAYMENT_API_SERVER_PORT}
+      - PAYMENT_API_SERVER_DNS=${PAYMENT_API_SERVER_DNS}
+      - FRONTEND_SERVER_PORT=${FRONTEND_SERVER_PORT}
+      - FRONTEND_SERVER_DNS=${FRONTEND_SERVER_DNS}
+      - FRONTEND_SENTRY_DSN=${FRONTEND_SENTRY_DSN}
+      - ASTROLOGICAL_API_URL=${ASTROLOGICAL_API_TRAEFIK_URL}
+      - PAYMENT_API_URL=${PAYMENT_API_TRAEFIK_URL}
+      - BOOKING_API_URL=${BOOKING_API_TRAEFIK_URL}
+      - STRIPE_PK=${STRIPE_PK}
+      - R2_BASE_URL=${R2_BASE_URL}
+    expose:
+      - "80"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:80" ]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    networks:
+      - astrolumina-production
+
+  astrology-api-green:
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-astrologyapi:${ASTROLOGY_API_DOCKER_IMAGE_TAG}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - ASTROLOGY_API_SERVER_PORT=${ASTROLOGY_API_SERVER_PORT}
+      - ASTROLOGY_API_SERVER_DNS=${ASTROLOGY_API_SERVER_DNS}
+      - BOOKING_API_SERVER_PORT=${BOOKING_API_SERVER_PORT}
+      - BOOKING_API_SERVER_DNS=${BOOKING_API_SERVER_DNS}
+      - PAYMENT_API_SERVER_PORT=${PAYMENT_API_SERVER_PORT}
+      - PAYMENT_API_SERVER_DNS=${PAYMENT_API_SERVER_DNS}
+      - FRONTEND_SERVER_PORT=${FRONTEND_SERVER_PORT}
+      - FRONTEND_SERVER_DNS=${FRONTEND_SERVER_DNS}
+      - ASTROLOGY_API_SENTRY_DSN=${ASTROLOGY_API_SENTRY_DSN}
+      - ASTROLOGER_API_URL=${ASTROLOGER_API_URL}
+      - ASTROLOGER_API_HOST=${ASTROLOGER_API_HOST}
+      - ASTROLOGER_API_KEY=${ASTROLOGER_API_KEY}
+    expose:
+      - "${ASTROLOGY_API_SERVER_PORT}"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3031/health" ]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.125"
+          memory: 128M
+    networks:
+      - astrolumina-production
+
+  booking-api-green:
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-bookingapi:${BOOKING_API_DOCKER_IMAGE_TAG}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - ASTROLOGY_API_SERVER_PORT=${ASTROLOGY_API_SERVER_PORT}
+      - ASTROLOGY_API_SERVER_DNS=${ASTROLOGY_API_SERVER_DNS}
+      - BOOKING_API_SERVER_PORT=${BOOKING_API_SERVER_PORT}
+      - BOOKING_API_SERVER_DNS=${BOOKING_API_SERVER_DNS}
+      - PAYMENT_API_SERVER_PORT=${PAYMENT_API_SERVER_PORT}
+      - PAYMENT_API_SERVER_DNS=${PAYMENT_API_SERVER_DNS}
+      - FRONTEND_SERVER_PORT=${FRONTEND_SERVER_PORT}
+      - FRONTEND_SERVER_DNS=${FRONTEND_SERVER_DNS}
+      - BOOKING_API_SENTRY_DSN=${BOOKING_API_SENTRY_DSN}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - CALCOM_API_KEY=${CALCOM_API_KEY}
+      - CALCOM_BASE_URL=${CALCOM_BASE_URL}
+      - R2_BASE_URL=${R2_BASE_URL}
+      - D1_ACCOUNT_ID=${D1_ACCOUNT_ID}
+      - D1_DATABASE_ID=${D1_DATABASE_ID}
+      - D1_API_TOKEN=${D1_API_TOKEN}
+    expose:
+      - "${BOOKING_API_SERVER_PORT}"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3033/health" ]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.125"
+          memory: 128M
+    networks:
+      - astrolumina-production
+
+  payment-api-green:
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-paymentapi:${PAYMENT_API_DOCKER_IMAGE_TAG}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - ASTROLOGY_API_SERVER_PORT=${ASTROLOGY_API_SERVER_PORT}
+      - ASTROLOGY_API_SERVER_DNS=${ASTROLOGY_API_SERVER_DNS}
+      - BOOKING_API_SERVER_PORT=${BOOKING_API_SERVER_PORT}
+      - BOOKING_API_SERVER_DNS=${BOOKING_API_SERVER_DNS}
+      - PAYMENT_API_SERVER_PORT=${PAYMENT_API_SERVER_PORT}
+      - PAYMENT_API_SERVER_DNS=${PAYMENT_API_SERVER_DNS}
+      - FRONTEND_SERVER_PORT=${FRONTEND_SERVER_PORT}
+      - FRONTEND_SERVER_DNS=${FRONTEND_SERVER_DNS}
+      - PAYMENT_API_SENTRY_DSN=${PAYMENT_API_SENTRY_DSN}
+      - STRIPE_API_VER=${STRIPE_API_VER}
+      - STRIPE_SK=${STRIPE_SK}
+      - STRIPE_SOARELE_STRALUCIREA_TA=${STRIPE_SOARELE_STRALUCIREA_TA}
+      - STRIPE_GHID_SATURN_IN_BERBEC=${STRIPE_GHID_SATURN_IN_BERBEC}
+      - STRIPE_ASTROGRAMA_NATALA_SI_KARMICA=${STRIPE_ASTROGRAMA_NATALA_SI_KARMICA}
+      - STRIPE_ASTROGRAMA_RELATIONALA=${STRIPE_ASTROGRAMA_RELATIONALA}
+      - STRIPE_ASTROGRAMA_PREVIZIONALA=${STRIPE_ASTROGRAMA_PREVIZIONALA}
+      - STRIPE_EVENIMENT_CONSTELATII=${STRIPE_EVENIMENT_CONSTELATII}
+    expose:
+      - "${PAYMENT_API_SERVER_PORT}"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3032/health" ]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.125"
+          memory: 128M
+    networks:
+      - astrolumina-production

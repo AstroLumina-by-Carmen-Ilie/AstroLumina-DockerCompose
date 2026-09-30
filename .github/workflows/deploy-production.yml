@@ -1,0 +1,69 @@
+on:
+  repository_dispatch:
+    types: [deploy-production]
+
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to deploy"
+        required: true
+        type: choice
+        options:
+          - astrolumina-frontend
+          - astrolumina-astrologyapi
+          - astrolumina-bookingapi
+          - astrolumina-paymentapi
+      tag:
+        description: "Image tag to deploy on prod"
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    environment: production
+    steps:
+      - name: Deploy to production host
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd ./production
+
+            SERVICE="${{ inputs.service || github.event.client_payload.service }}"
+            TAG="${{ inputs.tag || github.event.client_payload.tag }}"
+
+            # Map the GHCR image name to the .env variable and compose services
+            case "$SERVICE" in
+              astrolumina-frontend)    ENV_VAR="FRONTEND_DOCKER_IMAGE_TAG";      COMPOSE_SERVICES="frontend-blue frontend-green";         HEALTH_PATH="/" ;;
+              astrolumina-astrologyapi) ENV_VAR="ASTROLOGY_API_DOCKER_IMAGE_TAG"; COMPOSE_SERVICES="astrology-api-blue astrology-api-green"; HEALTH_PATH="/api/astrology/health" ;;
+              astrolumina-bookingapi)  ENV_VAR="BOOKING_API_DOCKER_IMAGE_TAG";   COMPOSE_SERVICES="booking-api-blue booking-api-green";   HEALTH_PATH="/api/booking/health" ;;
+              astrolumina-paymentapi)  ENV_VAR="PAYMENT_API_DOCKER_IMAGE_TAG";   COMPOSE_SERVICES="payment-api-blue payment-api-green";   HEALTH_PATH="/api/payment/health" ;;
+              *) echo "Unknown service: $SERVICE" >&2; exit 1 ;;
+            esac
+
+            [ -n "$TAG" ] || { echo "Empty tag, nothing to deploy" >&2; exit 1; }
+
+            # Pin the new tag in .env (the file the compose stack reads)
+            sed -i "s|^${ENV_VAR}=.*|${ENV_VAR}=${TAG}|" .env
+            grep -q "^${ENV_VAR}=${TAG}$" .env || { echo "Failed to update $ENV_VAR in .env" >&2; exit 1; }
+
+            # Pull and recreate both colors (blue-green switch stays manual, via routes.yml)
+            COMPOSE="docker compose -f docker-compose.yml -f docker-compose.blue.yml -f docker-compose.green.yml"
+            $COMPOSE pull $COMPOSE_SERVICES
+            $COMPOSE up -d $COMPOSE_SERVICES
+
+            # Smoke test through Traefik (Host-header routing, HTTPS on production)
+            for i in $(seq 1 12); do
+              if curl -sf -H "Host: astrolumina.ro" "https://localhost${HEALTH_PATH}" > /dev/null; then
+                echo "Production is healthy"
+                exit 0
+              fi
+              echo "Waiting for a healthy backend... ($i/12)"
+              sleep 10
+            done
+            echo "Smoke test failed for $SERVICE:$TAG" >&2
+            exit 1

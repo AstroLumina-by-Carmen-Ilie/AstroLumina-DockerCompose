@@ -1,0 +1,21 @@
+services:
+  traefik:
+    image: traefik:v3.1
+    container_name: astrolumina-production-traefik
+    restart: unless-stopped
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./traefik/certs:/certs
+      - ./traefik/logs:/var/log/traefik
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    networks:
+      - astrolumina-production
+
+networks:
+  astrolumina-production:
+    name: astrolumina-production
+    driver: bridge
