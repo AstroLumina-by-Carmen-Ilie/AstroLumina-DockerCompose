@@ -2,7 +2,7 @@
 # Staging routes — HTTP without TLS. The LIVE color is switched here:
 # on each router, the `service:` field points to *-blue or *-green.
 # Traefik reloads automatically (watch: true), no restart needed.
-# Host: staging.astrolumina.ro
+# Host: staging.dc.astrolumina.ro
 # =============================================================================
 http:
   middlewares:
@@ -42,7 +42,7 @@ http:
   routers:
     astrology:
       entryPoints: [web]
-      rule: "Host(`staging.astrolumina.ro`) && PathPrefix(`/api/astrology`)"
+      rule: "Host(`staging.dc.astrolumina.ro`) && PathPrefix(`/api/astrology`)"
       middlewares:
         - security-headers
         - compress
@@ -51,7 +51,7 @@ http:
 
     booking:
       entryPoints: [web]
-      rule: "Host(`staging.astrolumina.ro`) && PathPrefix(`/api/booking`)"
+      rule: "Host(`staging.dc.astrolumina.ro`) && PathPrefix(`/api/booking`)"
       middlewares:
         - security-headers
         - compress
@@ -60,7 +60,7 @@ http:
 
     payment:
       entryPoints: [web]
-      rule: "Host(`staging.astrolumina.ro`) && PathPrefix(`/api/payment`)"
+      rule: "Host(`staging.dc.astrolumina.ro`) && PathPrefix(`/api/payment`)"
       middlewares:
         - security-headers
         - compress
@@ -69,7 +69,7 @@ http:
 
     frontend:
       entryPoints: [web]
-      rule: "Host(`staging.astrolumina.ro`)"
+      rule: "Host(`staging.dc.astrolumina.ro`)"
       middlewares:
         - security-headers
         - compress
@@ -77,7 +77,7 @@ http:
 
     dashboard:
       entryPoints: [web]
-      rule: "Host(`dashboard.astrolumina.ro`)"
+      rule: "Host(`dashboard.dc.astrolumina.ro`)"
       service: api@internal
 
   services:

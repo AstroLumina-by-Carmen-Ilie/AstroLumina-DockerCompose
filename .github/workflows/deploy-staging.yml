@@ -58,7 +58,7 @@ jobs:
 
             # Smoke test through Traefik (Host-header routing, plain HTTP on staging)
             for i in $(seq 1 12); do
-              if curl -sf -H "Host: staging.astrolumina.ro" "http://localhost${HEALTH_PATH}" > /dev/null; then
+              if curl -sf -H "Host: staging.dc.astrolumina.ro" "http://localhost${HEALTH_PATH}" > /dev/null; then
                 echo "Staging is healthy"
                 exit 0
               fi

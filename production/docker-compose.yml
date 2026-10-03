@@ -1,9 +1,10 @@
 services:
   traefik:
-    image: traefik:v3.1
+    image: traefik:v3.6
     container_name: astrolumina-production-traefik
     restart: unless-stopped
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./traefik/dynamic:/etc/traefik/dynamic:ro
       - ./traefik/certs:/certs
@@ -14,6 +15,17 @@ services:
       - "8080:8080"
     networks:
       - astrolumina-production
+    # Dashboard router (dashboard.dc.astrolumina.ro + basic-auth) lives here
+    # as labels instead of routes.yml: compose interpolates
+    # ${TRAEFIK_DASHBOARD_AUTH} from .env/Doppler, the file provider cannot.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard.dc.astrolumina.ro`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
 
 networks:
   astrolumina-production:

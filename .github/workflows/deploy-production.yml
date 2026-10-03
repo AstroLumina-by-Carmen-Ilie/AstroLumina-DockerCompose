@@ -58,7 +58,7 @@ jobs:
 
             # Smoke test through Traefik (Host-header routing, HTTPS on production)
             for i in $(seq 1 12); do
-              if curl -sf -H "Host: astrolumina.ro" "https://localhost${HEALTH_PATH}" > /dev/null; then
+              if curl -sf -H "Host: production.dc.astrolumina.ro" "https://localhost${HEALTH_PATH}" > /dev/null; then
                 echo "Production is healthy"
                 exit 0
               fi

@@ -24,6 +24,12 @@ entryPoints:
     address: ":443"
 
 providers:
+  # Docker provider: used ONLY for the dashboard router + basic-auth
+  # (labels, defined in docker-compose.yml), because the file provider
+  # cannot interpolate env vars like ${TRAEFIK_DASHBOARD_AUTH}.
+  # All app routers stay in the file provider below.
+  docker:
+    exposedByDefault: false
   file:
     filename: /etc/traefik/dynamic/routes.yml
     watch: true

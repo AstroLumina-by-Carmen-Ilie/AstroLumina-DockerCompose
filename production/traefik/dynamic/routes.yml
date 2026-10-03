@@ -2,15 +2,13 @@
 # Production routes — HTTPS with Let's Encrypt. The LIVE color is switched here:
 # on each router, the `service:` field points to *-blue or *-green.
 # Traefik reloads automatically (watch: true), no restart needed.
-# Host: astrolumina.ro (frontend + /api/*), dashboard.astrolumina.ro
+# Host: production.dc.astrolumina.ro (frontend + /api/*).
+# The dashboard (dashboard.dc.astrolumina.ro + basic-auth) is defined via
+# labels in docker-compose.yml, NOT here: the file provider cannot
+# interpolate ${TRAEFIK_DASHBOARD_AUTH} from env.
 # =============================================================================
 http:
   middlewares:
-    dashboard-auth:
-      basicAuth:
-        users:
-          - "${TRAEFIK_DASHBOARD_AUTH}"
-
     to-https:
       redirectScheme:
         scheme: https
@@ -52,13 +50,13 @@ http:
   routers:
     catch-http:
       entryPoints: [web]
-      rule: "Host(`astrolumina.ro`)"
+      rule: "Host(`production.dc.astrolumina.ro`)"
       middlewares: [to-https]
       service: noop
 
     astrology:
       entryPoints: [websecure]
-      rule: "Host(`astrolumina.ro`) && PathPrefix(`/api/astrology`)"
+      rule: "Host(`production.dc.astrolumina.ro`) && PathPrefix(`/api/astrology`)"
       middlewares:
         - security-headers
         - compress
@@ -69,7 +67,7 @@ http:
 
     booking:
       entryPoints: [websecure]
-      rule: "Host(`astrolumina.ro`) && PathPrefix(`/api/booking`)"
+      rule: "Host(`production.dc.astrolumina.ro`) && PathPrefix(`/api/booking`)"
       middlewares:
         - security-headers
         - compress
@@ -80,7 +78,7 @@ http:
 
     payment:
       entryPoints: [websecure]
-      rule: "Host(`astrolumina.ro`) && PathPrefix(`/api/payment`)"
+      rule: "Host(`production.dc.astrolumina.ro`) && PathPrefix(`/api/payment`)"
       middlewares:
         - security-headers
         - compress
@@ -90,7 +88,7 @@ http:
       service: payment-blue # LIVE: change to payment-green to switch
 
     frontend:
-      rule: "Host(`astrolumina.ro`)"
+      rule: "Host(`production.dc.astrolumina.ro`)"
       entryPoints: [websecure]
       middlewares:
         - security-headers
@@ -98,15 +96,6 @@ http:
       tls:
         certResolver: letsencrypt
       service: frontend-blue # LIVE: change to frontend-green to switch
-
-    dashboard:
-      entryPoints: [websecure]
-      rule: "Host(`dashboard.astrolumina.ro`)"
-      middlewares:
-        - dashboard-auth
-      tls:
-        certResolver: letsencrypt
-      service: api@internal
 
   services:
     astrology-blue:
