@@ -66,8 +66,8 @@ never commit them.
 | TLS | No | No (HTTP only) | Yes (Let's Encrypt `httpChallenge`) |
 | Replicas | 1 | 3 per service | 3 per service |
 | Network | `astrolumina-dev` | `astrolumina-staging` | `astrolumina-production` |
-| Host | `localhost` ports | `staging.astrolumina.ro` | `astrolumina.ro` |
-| Dashboard | None | Open on `:8080` (`insecure: true`) | `dashboard.astrolumina.ro` + basic auth |
+| Host | `localhost` ports | `staging.dc.astrolumina.ro` | `production.dc.astrolumina.ro` |
+| Dashboard | None | Open on `:8080` (`insecure: true`) | `dashboard.dc.astrolumina.ro` + basic auth |
 | Deploy | Manual | `deploy-staging.yml` via SSH | `deploy-production.yml` via SSH |
 
 ---
@@ -112,7 +112,7 @@ whichever color is **LIVE** in `traefik/dynamic/routes.yml`.
 
 ```mermaid
 flowchart TB
-    NET["Internet<br/>staging.astrolumina.ro :80"]
+    NET["Internet<br/>staging.dc.astrolumina.ro :80"]
 
     subgraph HOST["Staging host — network: astrolumina-staging"]
         TR["Traefik v3.1<br/>:80 + :8080 dashboard<br/>file provider, watch: true"]
@@ -144,7 +144,7 @@ HTTP→HTTPS redirect, and an auth-protected dashboard on its own host.
 
 ```mermaid
 flowchart TB
-    NET["Internet<br/>astrolumina.ro :80/:443<br/>dashboard.astrolumina.ro :443"]
+    NET["Internet<br/>production.dc.astrolumina.ro :80/:443<br/>dashboard.dc.astrolumina.ro :443"]
 
     subgraph HOST["Production host — network: astrolumina-production"]
         TR["Traefik v3.1<br/>:80 redirect + ACME challenge<br/>:443 TLS (letsencrypt)<br/>:8080 · dashboard via websecure"]
@@ -252,7 +252,7 @@ sequenceDiagram
     participant MW as Middleware chain
     participant S as LIVE backend<br/>(e.g. astrology-api-blue:3031)
 
-    C->>T: GET staging.astrolumina.ro/api/astrology/horoscope
+    C->>T: GET staging.dc.astrolumina.ro/api/astrology/horoscope
     T->>T: Router match: Host + PathPrefix(`/api/astrology`)
     T->>MW: 1. security-headers (OWASP headers + noindex)
     MW->>MW: 2. compress (gzip)
@@ -395,8 +395,8 @@ docker compose -f docker-compose.yml \
 docker compose ps
 
 # Verify routing
-curl http://staging.astrolumina.ro            # staging (HTTP)
-curl https://astrolumina.ro/api/astrology/health  # production (HTTPS)
+curl http://staging.dc.astrolumina.ro            # staging (HTTP)
+curl https://production.dc.astrolumina.ro/api/astrology/health  # production (HTTPS)
 
 # Validate config without starting anything
 docker compose config | grep -E "replicas|memory|cpus"
@@ -406,10 +406,10 @@ docker compose config | grep -E "replicas|memory|cpus"
 `staging/traefik/dynamic/routes.yml`, save, then verify — no restart needed:
 
 ```bash
-curl http://staging.astrolumina.ro/api/astrology/health
-curl http://staging.astrolumina.ro/api/booking/health
-curl http://staging.astrolumina.ro/api/payment/health
-curl http://staging.astrolumina.ro
+curl http://staging.dc.astrolumina.ro/api/astrology/health
+curl http://staging.dc.astrolumina.ro/api/booking/health
+curl http://staging.dc.astrolumina.ro/api/payment/health
+curl http://staging.dc.astrolumina.ro
 ```
 
 ---
