@@ -21,6 +21,10 @@ services:
       - ASTROLOGICAL_API_URL=${ASTROLOGICAL_API_URL}
       - PAYMENT_API_URL=${PAYMENT_API_URL}
       - BOOKING_API_URL=${BOOKING_API_URL}
+      - FRONTEND_SERVER_K8S_PORT=${FRONTEND_SERVER_K8S_PORT}
+      - ASTROLOGY_API_SERVER_K8S_PORT=${ASTROLOGY_API_SERVER_K8S_PORT}
+      - BOOKING_API_SERVER_K8S_PORT=${BOOKING_API_SERVER_K8S_PORT}
+      - PAYMENT_API_SERVER_K8S_PORT=${PAYMENT_API_SERVER_K8S_PORT}
       - STRIPE_PK=${STRIPE_PK}
       - R2_BASE_URL=${R2_BASE_URL}
     ports:
@@ -35,11 +39,11 @@ services:
       replicas: 1
       resources:
         limits:
-          cpus: "2"
-          memory: 2G
-        reservations:
           cpus: "0.5"
-          memory: 512M
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
     networks:
       - astrolumina-dev
 
@@ -58,6 +62,10 @@ services:
       - FRONTEND_SERVER_PORT=${FRONTEND_SERVER_PORT}
       - FRONTEND_SERVER_DNS=${FRONTEND_SERVER_DNS}
       - ASTROLOGY_API_SENTRY_DSN=${ASTROLOGY_API_SENTRY_DSN}
+      - FRONTEND_SERVER_K8S_PORT=${FRONTEND_SERVER_K8S_PORT}
+      - ASTROLOGY_API_SERVER_K8S_PORT=${ASTROLOGY_API_SERVER_K8S_PORT}
+      - BOOKING_API_SERVER_K8S_PORT=${BOOKING_API_SERVER_K8S_PORT}
+      - PAYMENT_API_SERVER_K8S_PORT=${PAYMENT_API_SERVER_K8S_PORT}
       - ASTROLOGER_API_URL=${ASTROLOGER_API_URL}
       - ASTROLOGER_API_HOST=${ASTROLOGER_API_HOST}
       - ASTROLOGER_API_KEY=${ASTROLOGER_API_KEY}
@@ -80,11 +88,11 @@ services:
       replicas: 1
       resources:
         limits:
-          cpus: "1"
-          memory: 1G
+          cpus: "0.5"
+          memory: 256M
         reservations:
-          cpus: "0.125"
-          memory: 128M
+          cpus: "0.05"
+          memory: 96M
     networks:
       - astrolumina-dev
 
@@ -103,6 +111,10 @@ services:
       - FRONTEND_SERVER_PORT=${FRONTEND_SERVER_PORT}
       - FRONTEND_SERVER_DNS=${FRONTEND_SERVER_DNS}
       - BOOKING_API_SENTRY_DSN=${BOOKING_API_SENTRY_DSN}
+      - FRONTEND_SERVER_K8S_PORT=${FRONTEND_SERVER_K8S_PORT}
+      - ASTROLOGY_API_SERVER_K8S_PORT=${ASTROLOGY_API_SERVER_K8S_PORT}
+      - BOOKING_API_SERVER_K8S_PORT=${BOOKING_API_SERVER_K8S_PORT}
+      - PAYMENT_API_SERVER_K8S_PORT=${PAYMENT_API_SERVER_K8S_PORT}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - CALCOM_API_KEY=${CALCOM_API_KEY}
       - CALCOM_BASE_URL=${CALCOM_BASE_URL}
@@ -129,11 +141,11 @@ services:
       replicas: 1
       resources:
         limits:
-          cpus: "1"
-          memory: 1G
+          cpus: "0.5"
+          memory: 256M
         reservations:
-          cpus: "0.125"
-          memory: 128M
+          cpus: "0.05"
+          memory: 96M
     networks:
       - astrolumina-dev
 
@@ -152,6 +164,10 @@ services:
       - FRONTEND_SERVER_PORT=${FRONTEND_SERVER_PORT}
       - FRONTEND_SERVER_DNS=${FRONTEND_SERVER_DNS}
       - PAYMENT_API_SENTRY_DSN=${PAYMENT_API_SENTRY_DSN}
+      - FRONTEND_SERVER_K8S_PORT=${FRONTEND_SERVER_K8S_PORT}
+      - ASTROLOGY_API_SERVER_K8S_PORT=${ASTROLOGY_API_SERVER_K8S_PORT}
+      - BOOKING_API_SERVER_K8S_PORT=${BOOKING_API_SERVER_K8S_PORT}
+      - PAYMENT_API_SERVER_K8S_PORT=${PAYMENT_API_SERVER_K8S_PORT}
       - STRIPE_API_VER=${STRIPE_API_VER}
       - STRIPE_SK=${STRIPE_SK}
       - STRIPE_SOARELE_STRALUCIREA_TA=${STRIPE_SOARELE_STRALUCIREA_TA}
@@ -179,11 +195,11 @@ services:
       replicas: 1
       resources:
         limits:
-          cpus: "1"
-          memory: 1G
+          cpus: "0.5"
+          memory: 256M
         reservations:
-          cpus: "0.125"
-          memory: 128M
+          cpus: "0.05"
+          memory: 96M
     networks:
       - astrolumina-dev
 
