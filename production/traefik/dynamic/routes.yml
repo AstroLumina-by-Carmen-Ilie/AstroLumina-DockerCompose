@@ -2,15 +2,13 @@
 # Production routes — HTTPS with Let's Encrypt. The LIVE color is switched here:
 # on each router, the `service:` field points to *-blue or *-green.
 # Traefik reloads automatically (watch: true), no restart needed.
-# Host: production.dc.astrolumina.ro (frontend + /api/*), dashboard.dc.astrolumina.ro
+# Host: production.dc.astrolumina.ro (frontend + /api/*).
+# The dashboard (dashboard.dc.astrolumina.ro + basic-auth) is defined via
+# labels in docker-compose.yml, NOT here: the file provider cannot
+# interpolate ${TRAEFIK_DASHBOARD_AUTH} from env.
 # =============================================================================
 http:
   middlewares:
-    dashboard-auth:
-      basicAuth:
-        users:
-          - "${TRAEFIK_DASHBOARD_AUTH}"
-
     to-https:
       redirectScheme:
         scheme: https
@@ -98,15 +96,6 @@ http:
       tls:
         certResolver: letsencrypt
       service: frontend-blue # LIVE: change to frontend-green to switch
-
-    dashboard:
-      entryPoints: [websecure]
-      rule: "Host(`dashboard.dc.astrolumina.ro`)"
-      middlewares:
-        - dashboard-auth
-      tls:
-        certResolver: letsencrypt
-      service: api@internal
 
   services:
     astrology-blue:
