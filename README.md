@@ -82,10 +82,10 @@ The frontend depends on the three APIs (`depends_on`).
 ```mermaid
 flowchart LR
     subgraph HOST["Host machine"]
-        B1["${FRONTEND_SERVER_PORT}"]
-        B2["${ASTROLOGY_API_SERVER_PORT}"]
-        B3["${BOOKING_API_SERVER_PORT}"]
-        B4["${PAYMENT_API_SERVER_PORT}"]
+        B1["${FRONTEND_SERVER_DC_PORT}"]
+        B2["${ASTROLOGY_API_SERVER_DC_PORT}"]
+        B3["${BOOKING_API_SERVER_DC_PORT}"]
+        B4["${PAYMENT_API_SERVER_DC_PORT}"]
     end
 
     subgraph NET["network: astrolumina-dev"]
@@ -178,10 +178,10 @@ only names, ports/publish mode, and replica counts differ.
 
 | Service | Image (GHCR) | Container port | Dev publish | Staging/Prod |
 |---|---|---|---|---|
-| `frontend` | `astrolumina-frontend` | 80 | `${FRONTEND_SERVER_PORT}:80` | `expose: 80` (Traefik only) |
-| `astrology-api` | `astrolumina-astrologyapi` | 3031 | `${ASTROLOGY_API_SERVER_PORT}:3031` | `expose: 3031` |
-| `booking-api` | `astrolumina-bookingapi` | 3033 | `${BOOKING_API_SERVER_PORT}:3033` | `expose: 3033` |
-| `payment-api` | `astrolumina-paymentapi` | 3032 | `${PAYMENT_API_SERVER_PORT}:3032` | `expose: 3032` |
+| `frontend` | `astrolumina-frontend` | 80 | `${FRONTEND_SERVER_DC_PORT}:80` | `expose: 80` (Traefik only) |
+| `astrology-api` | `astrolumina-astrologyapi` | 3031 | `${ASTROLOGY_API_SERVER_DC_PORT}:3031` | `expose: 3031` |
+| `booking-api` | `astrolumina-bookingapi` | 3033 | `${BOOKING_API_SERVER_DC_PORT}:3033` | `expose: 3033` |
+| `payment-api` | `astrolumina-paymentapi` | 3032 | `${PAYMENT_API_SERVER_DC_PORT}:3032` | `expose: 3032` |
 
 Resource budgets (identical in all environments):
 
@@ -359,9 +359,10 @@ plus `STAGING_SSH_KEY` / `PRODUCTION_SSH_KEY`.
 ## 9. Configuration reference
 
 - **Env files:** copy `<env>/.env.example` to `<env>/.env` and fill in values.
-  Every app variable (`*_PORT`, `*_DNS`, `*_SENTRY_DSN`, Stripe keys, R2/D1,
-  Resend, CalCom, RapidAPI astrologer key) flows into the containers via
-  `environment:`. `${VAR}` interpolation means a missing `.env` breaks
+  Every app variable (service `*_SERVER_PORT`, shared `*_SERVER_DC_PORT` /
+  `*_DC_DNS` / `*_K8S_PORT` / `*_K8S_DNS` endpoint pairs, `*_SENTRY_DSN`,
+  Stripe keys, R2/D1, Resend, CalCom, RapidAPI astrologer key, and the three
+  frontend `_API_DC_URL` URLs) flows into the containers via `environment:`. `${VAR}` interpolation means a missing `.env` breaks
   `docker compose config` — that is expected, not a bug.
 - **Production extra:** `TRAEFIK_DASHBOARD_AUTH` holds an `htpasswd`-generated
   `admin:<hash>` pair (keep the quotes in `.env`).
@@ -383,8 +384,8 @@ cd development
 cp .env.example .env          # then fill in values
 docker compose up --build -d
 docker compose ps
-curl http://localhost:${FRONTEND_SERVER_PORT}
-curl http://localhost:${ASTROLOGY_API_SERVER_PORT}/health
+curl http://localhost:${FRONTEND_SERVER_DC_PORT}
+curl http://localhost:${ASTROLOGY_API_SERVER_DC_PORT}/health
 
 # ── Staging / Production (Traefik + blue + green) ───────────
 cd staging                    # or: production
