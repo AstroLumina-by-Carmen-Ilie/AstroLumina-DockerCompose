@@ -62,7 +62,7 @@ _alu_require_color_env() {
 # --- whole stack (current directory) ------------------------------------------
 
 dc_up()   { _alu_compose up -d "$@"; }
-dc_down() { _alu_compose down "$@"; }
+dc_down() { _alu_compose down "$@" --rmi all; }
 dc_ps()   { _alu_compose ps "$@"; }
 dc_logs() { _alu_compose logs -f --tail=10 "$@"; }
 
@@ -77,7 +77,7 @@ dc_up_blue() {
 dc_down_blue() {
   _alu_require_color_env || return 1
   if [ $# -eq 0 ]; then set -- $_BLUE_SERVICES; fi
-  _alu_compose down "$@"
+  _alu_compose down "$@" --rmi all
 }
 
 dc_logs_blue() {
@@ -97,7 +97,7 @@ dc_up_green() {
 dc_down_green() {
   _alu_require_color_env || return 1
   if [ $# -eq 0 ]; then set -- $_GREEN_SERVICES; fi
-  _alu_compose down "$@"
+  _alu_compose down "$@" --rmi all
 }
 
 dc_logs_green() {
