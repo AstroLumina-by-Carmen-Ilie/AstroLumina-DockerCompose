@@ -55,13 +55,13 @@ jobs:
           -f docker-compose.yml -f docker-compose.blue.yml -f docker-compose.green.yml
           config --quiet
 
-  # Shell safety for helper scripts (SH_Aliases holds aliases only, so just a syntax check there).
+  # Shell safety for helper scripts (aliases holds functions only, so just a syntax check there).
   shellcheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - run: shellcheck --severity=warning refresh.sh
-      - run: bash -n refresh.sh && bash -n SH_Aliases
+      - run: bash -n refresh.sh && bash -n aliases
 
   # Misconfiguration scan (ports, Traefik exposure, image tags). Fails the
   # build on HIGH/CRITICAL and uploads SARIF to the Security tab.
