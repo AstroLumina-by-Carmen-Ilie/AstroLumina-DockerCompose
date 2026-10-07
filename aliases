@@ -1,0 +1,107 @@
+# AstroLumina compose helpers — SOURCE this file, do not execute it:
+#   source /home/daniel/Workdir/AstroLumina/AstroLumina-DockerCompose/aliases
+# (tip: add that line to ~/.bashrc)
+#
+# Every helper detects the directory you run it from:
+#   development          -> docker-compose.yml only
+#   staging|production   -> all 3 -f files, plus per-color helpers
+# and exports that directory's versions.env before delegating secrets
+# to `doppler run`.
+
+_BLUE_SERVICES="frontend-blue astrology-api-blue booking-api-blue payment-api-blue"
+_GREEN_SERVICES="frontend-green astrology-api-green booking-api-green payment-api-green"
+
+# --- internals (underscore prefix) -------------------------------------------
+
+_alu_env() {
+  basename "$PWD"
+}
+
+_alu_load_versions() {
+  if [ -f ./versions.env ]; then
+    set -a; source ./versions.env; set +a
+  else
+    echo "aliases: no ./versions.env in $PWD" >&2
+    return 1
+  fi
+}
+
+# Print the right -f flags for the current directory.
+_alu_files() {
+  case "$(_alu_env)" in
+    development)
+      echo "-f docker-compose.yml" ;;
+    staging|production)
+      echo "-f docker-compose.yml -f docker-compose.blue.yml -f docker-compose.green.yml" ;;
+    *)
+      echo "aliases: run from development|staging|production (you are in $PWD)" >&2
+      return 1 ;;
+  esac
+}
+
+# Run compose with versions loaded + Doppler secrets: _alu_compose <compose args...>
+_alu_compose() {
+  _alu_load_versions || return 1
+  local files
+  files=$(_alu_files) || return 1
+  # shellcheck disable=SC2086  # intentional word splitting of -f flags
+  doppler run -- docker compose $files "$@"
+}
+
+# Blue/green helpers only make sense where colors exist.
+_alu_require_color_env() {
+  case "$(_alu_env)" in
+    staging|production)
+      return 0 ;;
+    *)
+      echo "aliases: blue/green exist only in staging|production (you are in $PWD)" >&2
+      return 1 ;;
+  esac
+}
+
+# --- whole stack (current directory) ------------------------------------------
+
+dc_up()   { _alu_compose up -d "$@"; }
+dc_down() { _alu_compose down "$@"; }
+dc_ps()   { _alu_compose ps "$@"; }
+dc_logs() { _alu_compose logs -f --tail=10 "$@"; }
+
+# --- blue only (staging|production; defaults to all 4 blue services) ----------
+
+dc_up_blue() {
+  _alu_require_color_env || return 1
+  if [ $# -eq 0 ]; then set -- $_BLUE_SERVICES; fi
+  _alu_compose up -d "$@"
+}
+
+dc_down_blue() {
+  _alu_require_color_env || return 1
+  if [ $# -eq 0 ]; then set -- $_BLUE_SERVICES; fi
+  _alu_compose down "$@"
+}
+
+dc_logs_blue() {
+  _alu_require_color_env || return 1
+  if [ $# -eq 0 ]; then set -- $_BLUE_SERVICES; fi
+  _alu_compose logs -f --tail=10 "$@"
+}
+
+# --- green only (staging|production; defaults to all 4 green services) --------
+
+dc_up_green() {
+  _alu_require_color_env || return 1
+  if [ $# -eq 0 ]; then set -- $_GREEN_SERVICES; fi
+  _alu_compose up -d "$@"
+}
+
+dc_down_green() {
+  _alu_require_color_env || return 1
+  if [ $# -eq 0 ]; then set -- $_GREEN_SERVICES; fi
+  _alu_compose down "$@"
+}
+
+dc_logs_green() {
+  _alu_require_color_env || return 1
+  if [ $# -eq 0 ]; then set -- $_GREEN_SERVICES; fi
+  _alu_compose logs -f --tail=10 "$@"
+}

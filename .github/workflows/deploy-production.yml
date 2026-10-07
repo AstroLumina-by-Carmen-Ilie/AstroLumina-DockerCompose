@@ -16,6 +16,13 @@ on:
       tag:
         description: "Image tag to deploy on prod"
         required: true
+      color:
+        description: "Idle color to deploy (live color untouched)"
+        required: true
+        type: choice
+        options:
+          - blue
+          - green
 
 jobs:
   deploy:
@@ -32,38 +39,54 @@ jobs:
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           script: |
             cd ./production
+            [ -f .env ] || { echo "No .env file" >&2; exit 1; }
+            set -a; source .env; set +a   # container ports for the direct health check
 
             SERVICE="${{ inputs.service || github.event.client_payload.service }}"
             TAG="${{ inputs.tag || github.event.client_payload.tag }}"
+            COLOR="${{ inputs.color || github.event.client_payload.color }}"
 
-            # Map the GHCR image name to the .env variable and compose services
+            case "$COLOR" in
+              blue|green) ;;
+              *) echo "Unknown color: $COLOR (want blue|green)" >&2; exit 1 ;;
+            esac
+
+            # Map the GHCR image name to the per-color .env variable and the
+            # single-color compose service, plus the container-native port/path
+            # for the direct health check (idle color gets no Traefik traffic).
             case "$SERVICE" in
-              astrolumina-frontend)    ENV_VAR="FRONTEND_DOCKER_IMAGE_TAG";      COMPOSE_SERVICES="frontend-blue frontend-green";         HEALTH_PATH="/" ;;
-              astrolumina-astrologyapi) ENV_VAR="ASTROLOGY_API_DOCKER_IMAGE_TAG"; COMPOSE_SERVICES="astrology-api-blue astrology-api-green"; HEALTH_PATH="/api/astrology/health" ;;
-              astrolumina-bookingapi)  ENV_VAR="BOOKING_API_DOCKER_IMAGE_TAG";   COMPOSE_SERVICES="booking-api-blue booking-api-green";   HEALTH_PATH="/api/booking/health" ;;
-              astrolumina-paymentapi)  ENV_VAR="PAYMENT_API_DOCKER_IMAGE_TAG";   COMPOSE_SERVICES="payment-api-blue payment-api-green";   HEALTH_PATH="/api/payment/health" ;;
+              astrolumina-frontend)     BASE_VAR="FRONTEND";     SVC="frontend";      PORT="80";                        HPATH="/" ;;
+              astrolumina-astrologyapi) BASE_VAR="ASTROLOGY_API"; SVC="astrology-api"; PORT="$ASTROLOGY_API_SERVER_PORT"; HPATH="/health" ;;
+              astrolumina-bookingapi)   BASE_VAR="BOOKING_API";   SVC="booking-api";   PORT="$BOOKING_API_SERVER_PORT";   HPATH="/health" ;;
+              astrolumina-paymentapi)   BASE_VAR="PAYMENT_API";   SVC="payment-api";   PORT="$PAYMENT_API_SERVER_PORT";   HPATH="/health" ;;
               *) echo "Unknown service: $SERVICE" >&2; exit 1 ;;
             esac
+            ENV_VAR="${BASE_VAR}_${COLOR^^}_DOCKER_IMAGE_TAG"
+            TARGET="${SVC}-${COLOR}"
 
             [ -n "$TAG" ] || { echo "Empty tag, nothing to deploy" >&2; exit 1; }
 
-            # Pin the new tag in .env (the file the compose stack reads)
+            # Pin the new tag on the IDLE color only (live color untouched).
+            # Flip traffic afterwards by editing routes.yml service: fields.
             sed -i "s|^${ENV_VAR}=.*|${ENV_VAR}=${TAG}|" .env
             grep -q "^${ENV_VAR}=${TAG}$" .env || { echo "Failed to update $ENV_VAR in .env" >&2; exit 1; }
 
-            # Pull and recreate both colors (blue-green switch stays manual, via routes.yml)
             COMPOSE="docker compose -f docker-compose.yml -f docker-compose.blue.yml -f docker-compose.green.yml"
-            $COMPOSE pull $COMPOSE_SERVICES
-            $COMPOSE up -d $COMPOSE_SERVICES
+            $COMPOSE pull "$TARGET"
+            $COMPOSE up -d "$TARGET"
 
-            # Smoke test through Traefik (Host-header routing, HTTPS on production)
+            # Smoke test the idle color DIRECTLY by container IP over plain HTTP
+            # (TLS terminates at Traefik, which still points at the live color).
+            CID=$(docker ps -qf "name=${TARGET}-" | head -1)
+            [ -n "$CID" ] || { echo "No running container for $TARGET" >&2; exit 1; }
+            IP=$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$v.IPAddress}}{{end}}' "$CID")
             for i in $(seq 1 12); do
-              if curl -sf -H "Host: production.dc.astrolumina.ro" "https://localhost${HEALTH_PATH}" > /dev/null; then
-                echo "Production is healthy"
+              if curl -sf "http://${IP}:${PORT}${HPATH}" > /dev/null; then
+                echo "Idle color $TARGET ($TAG) is healthy — flip routes.yml when ready"
                 exit 0
               fi
               echo "Waiting for a healthy backend... ($i/12)"
               sleep 10
             done
-            echo "Smoke test failed for $SERVICE:$TAG" >&2
+            echo "Smoke test failed for $TARGET:$TAG" >&2
             exit 1

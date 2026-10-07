@@ -1,6 +1,6 @@
 services:
   frontend-blue:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-frontend:${FRONTEND_DOCKER_IMAGE_TAG}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-frontend:${FRONTEND_BLUE_DOCKER_IMAGE_TAG}
     pull_policy: always
     restart: unless-stopped
     depends_on:
@@ -53,7 +53,7 @@ services:
       - astrolumina-staging
 
   astrology-api-blue:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-astrologyapi:${ASTROLOGY_API_DOCKER_IMAGE_TAG}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-astrologyapi:${ASTROLOGY_API_BLUE_DOCKER_IMAGE_TAG}
     pull_policy: always
     restart: unless-stopped
     environment:
@@ -100,7 +100,7 @@ services:
       - astrolumina-staging
 
   booking-api-blue:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-bookingapi:${BOOKING_API_DOCKER_IMAGE_TAG}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-bookingapi:${BOOKING_API_BLUE_DOCKER_IMAGE_TAG}
     pull_policy: always
     restart: unless-stopped
     environment:
@@ -151,7 +151,7 @@ services:
       - astrolumina-staging
 
   payment-api-blue:
-    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-paymentapi:${PAYMENT_API_DOCKER_IMAGE_TAG}
+    image: ghcr.io/astrolumina-by-carmen-ilie/astrolumina-paymentapi:${PAYMENT_API_BLUE_DOCKER_IMAGE_TAG}
     pull_policy: always
     restart: unless-stopped
     environment:

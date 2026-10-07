@@ -275,7 +275,9 @@ API path mapping (same in staging and production, minus TLS):
 
 ## 7. Blue-green deployments
 
-Both app stacks always run; the switch is a **4-line edit** in
+Both app stacks always run, each pinned to its own tag
+(`*_BLUE_DOCKER_IMAGE_TAG` / `*_GREEN_DOCKER_IMAGE_TAG` in `versions.env`).
+Deploy goes to the idle color only; the switch is a **4-line edit** in
 `traefik/dynamic/routes.yml` — Traefik reloads it automatically (`watch: true`),
 no restart, near-zero downtime.
 
@@ -317,10 +319,10 @@ take it down, so recovery is one edit away.
 flowchart LR
     APP["App repo<br/>(Frontend / *API)<br/>image published to GHCR"] -->|repository_dispatch<br/>+ manual trigger| WF["This repo: deploy workflow<br/>(staging / production)"]
     WF --> SSH["SSH into env host<br/>(appleboy/ssh-action)"]
-    SSH --> MAP["Map image name → .env variable<br/>+ blue/green services"]
+    SSH --> MAP["Map image name → per-color .env var<br/>+ idle color service"]
     MAP --> SED["Pin tag in .env<br/>(verified with grep)"]
-    SED --> PULL["compose pull + up -d<br/>(all 3 -f files)"]
-    PULL --> SMOKE["Smoke test via Traefik<br/>(retry 12 × 10s)"]
+    SED --> PULL["compose pull + up -d<br/>(idle color only, all 3 -f files)"]
+    PULL --> SMOKE["Smoke test idle color directly<br/>(container IP, retry 12 × 10s)"]
 ```
 
 **Dispatch contract** — app repos trigger a deploy by sending a
@@ -337,16 +339,21 @@ for manual runs from the Actions tab:
 ```json
 {
   "service": "astrolumina-frontend",
-  "tag": "v1.4.2"
+  "tag": "v1.4.2",
+  "color": "green"
 }
 ```
 
+`color` is the **idle** color to deploy (live color untouched); flip traffic
+afterwards via `routes.yml` ([section 7](#7-blue-green-deployments)).
+
 Valid `service` values (= GHCR image names): `astrolumina-frontend`,
 `astrolumina-astrologyapi`, `astrolumina-bookingapi`, `astrolumina-paymentapi`.
-Each maps to its `*_DOCKER_IMAGE_TAG` variable in `<env>/.env` and to the
-matching `-blue`/`-green` compose services, which are pulled and recreated.
-Both colors get the new tag; the blue-green switch itself stays manual
-(see [section 7](#7-blue-green-deployments)).
+Each maps to its per-color `*_BLUE/_GREEN_DOCKER_IMAGE_TAG` variable (baseline
+in git `<env>/versions.env`, pinned into the server-side `<env>/.env` by the
+workflow) and to the matching single-color compose service, which is pulled
+and recreated. Only the idle color gets the new tag; the blue-green switch
+itself stays manual (see [section 7](#7-blue-green-deployments)).
 
 **Required secrets** (per environment): `STAGING_HOST` / `PRODUCTION_HOST`
 plus `STAGING_SSH_KEY` / `PRODUCTION_SSH_KEY`.
@@ -364,6 +371,17 @@ plus `STAGING_SSH_KEY` / `PRODUCTION_SSH_KEY`.
   Stripe keys, R2/D1, Resend, CalCom, RapidAPI astrologer key, and the three
   frontend `_API_DC_URL` URLs) flows into the containers via `environment:`. `${VAR}` interpolation means a missing `.env` breaks
   `docker compose config` — that is expected, not a bug.
+- **Image tags (`<env>/versions.env`, tracked in git):** the `*_DOCKER_IMAGE_TAG`
+  values are config, not secrets — source of truth in git (4 vars in dev,
+  8 per-color `*_BLUE/_GREEN_*` vars in staging/production for true
+  blue-green). They must be
+  **deleted from Doppler** after a one-time copy, otherwise Doppler silently
+  wins (process env beats `.env` file in compose interpolation; `doppler run`
+  never deletes file vars, it only overlays its own). Local flow:
+  `set -a; source versions.env; set +a` then `doppler run -- docker compose …`.
+  (Service-level `env_file` would NOT work for `image:` — interpolation happens
+  at compose parse time, from process env.) Server flow is unchanged: deploy
+  workflows pin explicit tags into the server `.env` via `sed`.
 - **Production extra:** `TRAEFIK_DASHBOARD_AUTH` holds an `htpasswd`-generated
   `admin:<hash>` pair (keep the quotes in `.env`).
 - **Networks:** one dedicated bridge per environment (`astrolumina-dev` /
