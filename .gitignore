@@ -1,0 +1,7 @@
+# Local env files hold real secrets (Doppler is the source of truth) - never commit them.
+# Skeleton files (.env.example) stay tracked.
+**/.env
+!**/.env.example
+
+# Traefik ACME storage holds real certificate private keys.
+**/traefik/certs/

@@ -1,0 +1,11 @@
+# Gitleaks configuration for AstroLumina-DockerCompose.
+# The base rule set still applies; the single allowlist entry covers one
+# historic secret. Real .env files are untracked and git-ignored.
+[allowlist]
+description = "Burned historic GitHub PAT (see comment)"
+regexTarget = "line"
+regexes = [
+  # HISTORIC GitHub PAT committed once in an old .env.example revision.
+  # Treat it as compromised: revoke it on GitHub if still active, never reuse it.
+  '''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''',
+]

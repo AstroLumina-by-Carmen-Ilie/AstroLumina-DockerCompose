@@ -1,0 +1,7 @@
+# Yamllint config: relaxed style with a wider line limit for long
+# Traefik rule lines and compose environment lists.
+extends: relaxed
+
+rules:
+  line-length:
+    max: 200

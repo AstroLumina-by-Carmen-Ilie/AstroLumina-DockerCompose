@@ -82,10 +82,10 @@ The frontend depends on the three APIs (`depends_on`).
 ```mermaid
 flowchart LR
     subgraph HOST["Host machine"]
-        B1["${FRONTEND_SERVER_PORT}"]
-        B2["${ASTROLOGY_API_SERVER_PORT}"]
-        B3["${BOOKING_API_SERVER_PORT}"]
-        B4["${PAYMENT_API_SERVER_PORT}"]
+        B1["${FRONTEND_SERVER_DC_PORT}"]
+        B2["${ASTROLOGY_API_SERVER_DC_PORT}"]
+        B3["${BOOKING_API_SERVER_DC_PORT}"]
+        B4["${PAYMENT_API_SERVER_DC_PORT}"]
     end
 
     subgraph NET["network: astrolumina-dev"]
@@ -178,10 +178,10 @@ only names, ports/publish mode, and replica counts differ.
 
 | Service | Image (GHCR) | Container port | Dev publish | Staging/Prod |
 |---|---|---|---|---|
-| `frontend` | `astrolumina-frontend` | 80 | `${FRONTEND_SERVER_PORT}:80` | `expose: 80` (Traefik only) |
-| `astrology-api` | `astrolumina-astrologyapi` | 3031 | `${ASTROLOGY_API_SERVER_PORT}:3031` | `expose: 3031` |
-| `booking-api` | `astrolumina-bookingapi` | 3033 | `${BOOKING_API_SERVER_PORT}:3033` | `expose: 3033` |
-| `payment-api` | `astrolumina-paymentapi` | 3032 | `${PAYMENT_API_SERVER_PORT}:3032` | `expose: 3032` |
+| `frontend` | `astrolumina-frontend` | 80 | `${FRONTEND_SERVER_DC_PORT}:80` | `expose: 80` (Traefik only) |
+| `astrology-api` | `astrolumina-astrologyapi` | 3031 | `${ASTROLOGY_API_SERVER_DC_PORT}:3031` | `expose: 3031` |
+| `booking-api` | `astrolumina-bookingapi` | 3033 | `${BOOKING_API_SERVER_DC_PORT}:3033` | `expose: 3033` |
+| `payment-api` | `astrolumina-paymentapi` | 3032 | `${PAYMENT_API_SERVER_DC_PORT}:3032` | `expose: 3032` |
 
 Resource budgets (identical in all environments):
 
@@ -275,7 +275,9 @@ API path mapping (same in staging and production, minus TLS):
 
 ## 7. Blue-green deployments
 
-Both app stacks always run; the switch is a **4-line edit** in
+Both app stacks always run, each pinned to its own tag
+(`*_BLUE_DOCKER_IMAGE_TAG` / `*_GREEN_DOCKER_IMAGE_TAG` in `versions.env`).
+Deploy goes to the idle color only; the switch is a **4-line edit** in
 `traefik/dynamic/routes.yml` — Traefik reloads it automatically (`watch: true`),
 no restart, near-zero downtime.
 
@@ -317,10 +319,10 @@ take it down, so recovery is one edit away.
 flowchart LR
     APP["App repo<br/>(Frontend / *API)<br/>image published to GHCR"] -->|repository_dispatch<br/>+ manual trigger| WF["This repo: deploy workflow<br/>(staging / production)"]
     WF --> SSH["SSH into env host<br/>(appleboy/ssh-action)"]
-    SSH --> MAP["Map image name → .env variable<br/>+ blue/green services"]
+    SSH --> MAP["Map image name → per-color .env var<br/>+ idle color service"]
     MAP --> SED["Pin tag in .env<br/>(verified with grep)"]
-    SED --> PULL["compose pull + up -d<br/>(all 3 -f files)"]
-    PULL --> SMOKE["Smoke test via Traefik<br/>(retry 12 × 10s)"]
+    SED --> PULL["compose pull + up -d<br/>(idle color only, all 3 -f files)"]
+    PULL --> SMOKE["Smoke test idle color directly<br/>(container IP, retry 12 × 10s)"]
 ```
 
 **Dispatch contract** — app repos trigger a deploy by sending a
@@ -337,16 +339,21 @@ for manual runs from the Actions tab:
 ```json
 {
   "service": "astrolumina-frontend",
-  "tag": "v1.4.2"
+  "tag": "v1.4.2",
+  "color": "green"
 }
 ```
 
+`color` is the **idle** color to deploy (live color untouched); flip traffic
+afterwards via `routes.yml` ([section 7](#7-blue-green-deployments)).
+
 Valid `service` values (= GHCR image names): `astrolumina-frontend`,
 `astrolumina-astrologyapi`, `astrolumina-bookingapi`, `astrolumina-paymentapi`.
-Each maps to its `*_DOCKER_IMAGE_TAG` variable in `<env>/.env` and to the
-matching `-blue`/`-green` compose services, which are pulled and recreated.
-Both colors get the new tag; the blue-green switch itself stays manual
-(see [section 7](#7-blue-green-deployments)).
+Each maps to its per-color `*_BLUE/_GREEN_DOCKER_IMAGE_TAG` variable (baseline
+in git `<env>/versions.env`, pinned into the server-side `<env>/.env` by the
+workflow) and to the matching single-color compose service, which is pulled
+and recreated. Only the idle color gets the new tag; the blue-green switch
+itself stays manual (see [section 7](#7-blue-green-deployments)).
 
 **Required secrets** (per environment): `STAGING_HOST` / `PRODUCTION_HOST`
 plus `STAGING_SSH_KEY` / `PRODUCTION_SSH_KEY`.
@@ -359,10 +366,22 @@ plus `STAGING_SSH_KEY` / `PRODUCTION_SSH_KEY`.
 ## 9. Configuration reference
 
 - **Env files:** copy `<env>/.env.example` to `<env>/.env` and fill in values.
-  Every app variable (`*_PORT`, `*_DNS`, `*_SENTRY_DSN`, Stripe keys, R2/D1,
-  Resend, CalCom, RapidAPI astrologer key) flows into the containers via
-  `environment:`. `${VAR}` interpolation means a missing `.env` breaks
+  Every app variable (service `*_SERVER_PORT`, shared `*_SERVER_DC_PORT` /
+  `*_DC_DNS` / `*_K8S_PORT` / `*_K8S_DNS` endpoint pairs, `*_SENTRY_DSN`,
+  Stripe keys, R2/D1, Resend, CalCom, RapidAPI astrologer key, and the three
+  frontend `_API_DC_URL` URLs) flows into the containers via `environment:`. `${VAR}` interpolation means a missing `.env` breaks
   `docker compose config` — that is expected, not a bug.
+- **Image tags (`<env>/versions.env`, tracked in git):** the `*_DOCKER_IMAGE_TAG`
+  values are config, not secrets — source of truth in git (4 vars in dev,
+  8 per-color `*_BLUE/_GREEN_*` vars in staging/production for true
+  blue-green). They must be
+  **deleted from Doppler** after a one-time copy, otherwise Doppler silently
+  wins (process env beats `.env` file in compose interpolation; `doppler run`
+  never deletes file vars, it only overlays its own). Local flow:
+  `set -a; source versions.env; set +a` then `doppler run -- docker compose …`.
+  (Service-level `env_file` would NOT work for `image:` — interpolation happens
+  at compose parse time, from process env.) Server flow is unchanged: deploy
+  workflows pin explicit tags into the server `.env` via `sed`.
 - **Production extra:** `TRAEFIK_DASHBOARD_AUTH` holds an `htpasswd`-generated
   `admin:<hash>` pair (keep the quotes in `.env`).
 - **Networks:** one dedicated bridge per environment (`astrolumina-dev` /
@@ -383,8 +402,8 @@ cd development
 cp .env.example .env          # then fill in values
 docker compose up --build -d
 docker compose ps
-curl http://localhost:${FRONTEND_SERVER_PORT}
-curl http://localhost:${ASTROLOGY_API_SERVER_PORT}/health
+curl http://localhost:${FRONTEND_SERVER_DC_PORT}
+curl http://localhost:${ASTROLOGY_API_SERVER_DC_PORT}/health
 
 # ── Staging / Production (Traefik + blue + green) ───────────
 cd staging                    # or: production
