@@ -65,7 +65,7 @@ http:
         - security-headers
         - compress
         - strip-payment
-      service: payment-blue # LIVE: change to payment-green to switch
+      service: payment-green # LIVE: change to payment-green to switch
 
     frontend:
       entryPoints: [web]
