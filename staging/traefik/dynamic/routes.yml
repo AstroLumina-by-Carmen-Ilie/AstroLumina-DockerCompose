@@ -47,7 +47,7 @@ http:
         - security-headers
         - compress
         - strip-astrology
-      service: astrology-green # LIVE: change to astrology-green to switch
+      service: astrology-blue # LIVE: change to astrology-green to switch
 
     booking:
       entryPoints: [web]
@@ -56,7 +56,7 @@ http:
         - security-headers
         - compress
         - strip-booking
-      service: booking-blue # LIVE: change to booking-green to switch
+      service: booking-green # LIVE: change to booking-green to switch
 
     payment:
       entryPoints: [web]
@@ -65,7 +65,7 @@ http:
         - security-headers
         - compress
         - strip-payment
-      service: payment-blue # LIVE: change to payment-green to switch
+      service: payment-green # LIVE: change to payment-green to switch
 
     frontend:
       entryPoints: [web]
@@ -73,7 +73,7 @@ http:
       middlewares:
         - security-headers
         - compress
-      service: frontend-blue # LIVE: change to frontend-green to switch
+      service: frontend-green # LIVE: change to frontend-green to switch
 
     dashboard:
       entryPoints: [web]
