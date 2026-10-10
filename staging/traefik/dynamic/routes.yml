@@ -73,7 +73,7 @@ http:
       middlewares:
         - security-headers
         - compress
-      service: frontend-green # LIVE: change to frontend-green to switch
+      service: frontend-blue # LIVE: change to frontend-green to switch
 
     dashboard:
       entryPoints: [web]
