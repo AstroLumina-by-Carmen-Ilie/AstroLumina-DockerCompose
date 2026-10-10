@@ -317,24 +317,25 @@ take it down, so recovery is one edit away.
 ```mermaid
 flowchart LR
     OP["Operator<br/>(Actions tab)"] -->|workflow_dispatch<br/>env + versions| WF["This repo: deploy.yml<br/>(dev / staging / production)"]
-    WF --> BUMP["Bump tags in versions.env<br/>(dev: plain tags;<br/>staging/prod: idle color only)"]
+    WF --> BUMP["Bump tags + flip live<br/>(dev: plain tags;<br/>staging/prod: idle bump + traffic flip)"]
     BUMP --> PR["Branch + PR to main"]
     PR --> MERGE["Human merges"]
     MERGE --> APPLY["Apply on the env host<br/>compose pull + up -d"]
-    APPLY --> SWITCH["Flip traffic when ready<br/>(routes.yml, staging/prod)"]
+    APPLY --> LIVE["New version serves traffic<br/>(live flipped in the PR)"]
 ```
 
 **Inputs** — `environment` is required (`dev` / `staging` / `production`);
 the four version texts (`frontend_version`, `astrology_version`,
 `booking_version`, `payment_version`, `X.Y.Z` or `latest`) are optional, but
 at least one must be set. Only components with a version are touched; on
-staging/production the live color is detected from `routes.yml` and only the
-idle color tag is bumped — the traffic flip stays manual
+staging/production the live color is detected from `routes.yml`, the idle
+color tag is bumped, and traffic is flipped to it in the same PR
 (see [section 7](#7-blue-green-deployments)).
 
 After merge, apply on the env host (`compose pull + up -d` with the three
-`-f` files on staging/production) and smoke-test the idle color before
-flipping. No secrets are needed by the workflow (same-repo `GITHUB_TOKEN`
+`-f` files on staging/production); traffic switches to the new version on
+apply since live was already flipped in the PR. Smoke-test after apply;
+rollback is a revert + re-apply. No secrets are needed by the workflow (same-repo `GITHUB_TOKEN`
 opens the PR).
 
 - `refresh.sh` (repo root) — local helper that runs `docker compose down`
