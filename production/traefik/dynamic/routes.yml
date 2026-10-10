@@ -63,7 +63,7 @@ http:
         - strip-astrology
       tls:
         certResolver: letsencrypt
-      service: astrology-blue # LIVE: change to astrology-green to switch
+      service: astrology-green # LIVE: change to astrology-green to switch
 
     booking:
       entryPoints: [websecure]
@@ -74,7 +74,7 @@ http:
         - strip-booking
       tls:
         certResolver: letsencrypt
-      service: booking-blue # LIVE: change to booking-green to switch
+      service: booking-green # LIVE: change to booking-green to switch
 
     payment:
       entryPoints: [websecure]
@@ -85,7 +85,7 @@ http:
         - strip-payment
       tls:
         certResolver: letsencrypt
-      service: payment-blue # LIVE: change to payment-green to switch
+      service: payment-green # LIVE: change to payment-green to switch
 
     frontend:
       rule: "Host(`production.dc.astrolumina.ro`)"
@@ -95,7 +95,7 @@ http:
         - compress
       tls:
         certResolver: letsencrypt
-      service: frontend-blue # LIVE: change to frontend-green to switch
+      service: frontend-green # LIVE: change to frontend-green to switch
 
   services:
     astrology-blue:
