@@ -15,8 +15,9 @@
 #   specified ones are replaced in place.
 # - staging/production: versions.env holds per-color tags. The live color is
 #   read from traefik/dynamic/routes.yml (the `service: <app>-<color>` router
-#   fields) and only the IDLE color tag is bumped. Traffic is NOT flipped
-#   here -- flip routes.yml afterwards, same as the promote flow.
+#   fields), the IDLE color tag is bumped, and traffic is flipped to it in the
+#   same commit (router service field rewritten, # LIVE comment preserved) --
+#   full blue-green promotion, same as the promote flow.
 # =============================================================================
 
 name: Deploy
@@ -123,8 +124,10 @@ jobs:
                   set_tag(versions_file, f"{prefix}_DOCKER_IMAGE_TAG", ver)
                   print(f"{prefix}: tag set to {ver}")
           else:
-              with open(f"{env_dir}/traefik/dynamic/routes.yml") as f:
-                  routers = yaml.safe_load(f)["http"]["routers"]
+              rpath = f"{env_dir}/traefik/dynamic/routes.yml"
+              with open(rpath) as f:
+                  rsrc = f.read()
+              routers = yaml.safe_load(rsrc)["http"]["routers"]
               # Router key per tag prefix; the service value reads
               # "<router>-<color>" (e.g. astrology-blue).
               router_of = {"FRONTEND": "frontend",
@@ -141,7 +144,20 @@ jobs:
                   idle = "green" if live == "blue" else "blue"
                   set_tag(versions_file,
                           f"{prefix}_{idle.upper()}_DOCKER_IMAGE_TAG", ver)
-                  print(f"{prefix}: live={live}, idle {idle} tag set to {ver}")
+                  # Flip traffic to the freshly bumped idle color in the
+                  # same commit; the # LIVE comment survives the rewrite.
+                  rsrc, n = re.subn(
+                      f"^(\\s*service:\\s*){router_of[prefix]}-{live}"
+                      f"(\\s*(?:#.*)?)$",
+                      f"\\g<1>{router_of[prefix]}-{idle}\\g<2>",
+                      rsrc, count=1, flags=re.M)
+                  assert n == 1, (
+                      f"live service line for {router_of[prefix]} not found "
+                      f"exactly once in {rpath}")
+                  print(f"{prefix}: live={live} -> idle {idle} tag set to "
+                        f"{ver}, traffic flipped to {idle}")
+              with open(rpath, "w") as f:
+                  f.write(rsrc)
           PYEOF
 
       - name: Commit to branch and open deploy PR
@@ -173,6 +189,6 @@ jobs:
             else
               gh pr create --base main --head "$BRANCH" \
                 --title "deploy ${{ inputs.environment }}: bump image tags" \
-                --body "Manual deploy to ${{ inputs.environment }} (run ${{ github.run_number }}). Merge, then apply on the env host with compose pull + up -d and flip traffic when ready."
+                --body "Deploy ${{ inputs.environment }} (run ${{ github.run_number }}). Merge, then compose pull + up -d; live already flipped."
             fi
           fi
