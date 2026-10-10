@@ -47,7 +47,7 @@ http:
         - security-headers
         - compress
         - strip-astrology
-      service: astrology-blue # LIVE: change to astrology-green to switch
+      service: astrology-green # LIVE: change to astrology-green to switch
 
     booking:
       entryPoints: [web]
