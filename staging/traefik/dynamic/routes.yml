@@ -56,7 +56,7 @@ http:
         - security-headers
         - compress
         - strip-booking
-      service: booking-green # LIVE: change to booking-green to switch
+      service: booking-blue # LIVE: change to booking-green to switch
 
     payment:
       entryPoints: [web]
