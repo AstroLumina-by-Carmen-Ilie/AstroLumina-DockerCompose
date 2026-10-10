@@ -47,8 +47,7 @@ graph TD
     PRD --> PRD_T["traefik/<br/>traefik.yml + dynamic/routes.yml"]
     PRD --> PRD_E[".env.example<br/>+ TRAEFIK_DASHBOARD_AUTH"]
 
-    GH --> GH_S["deploy-staging.yml<br/>dispatch: deploy-staging"]
-    GH --> GH_P["deploy-production.yml<br/>dispatch: deploy-production"]
+    GH --> GH_D["deploy.yml<br/>manual: env + versions"]
 ```
 
 Each environment directory is self-contained: `cd` into it and run
@@ -68,7 +67,7 @@ never commit them.
 | Network | `astrolumina-dev` | `astrolumina-staging` | `astrolumina-production` |
 | Host | `localhost` ports | `staging.dc.astrolumina.ro` | `production.dc.astrolumina.ro` |
 | Dashboard | None | Open on `:8080` (`insecure: true`) | `dashboard.dc.astrolumina.ro` + basic auth |
-| Deploy | Manual | `deploy-staging.yml` via SSH | `deploy-production.yml` via SSH |
+| Deploy | Manual | `deploy.yml` (env + versions, branch + PR) | `deploy.yml` (env + versions, branch + PR) |
 
 ---
 
@@ -317,46 +316,26 @@ take it down, so recovery is one edit away.
 
 ```mermaid
 flowchart LR
-    APP["App repo<br/>(Frontend / *API)<br/>image published to GHCR"] -->|repository_dispatch<br/>+ manual trigger| WF["This repo: deploy workflow<br/>(staging / production)"]
-    WF --> SSH["SSH into env host<br/>(appleboy/ssh-action)"]
-    SSH --> MAP["Map image name → per-color .env var<br/>+ idle color service"]
-    MAP --> SED["Pin tag in .env<br/>(verified with grep)"]
-    SED --> PULL["compose pull + up -d<br/>(idle color only, all 3 -f files)"]
-    PULL --> SMOKE["Smoke test idle color directly<br/>(container IP, retry 12 × 10s)"]
+    OP["Operator<br/>(Actions tab)"] -->|workflow_dispatch<br/>env + versions| WF["This repo: deploy.yml<br/>(dev / staging / production)"]
+    WF --> BUMP["Bump tags in versions.env<br/>(dev: plain tags;<br/>staging/prod: idle color only)"]
+    BUMP --> PR["Branch + PR to main"]
+    PR --> MERGE["Human merges"]
+    MERGE --> APPLY["Apply on the env host<br/>compose pull + up -d"]
+    APPLY --> SWITCH["Flip traffic when ready<br/>(routes.yml, staging/prod)"]
 ```
 
-**Dispatch contract** — app repos trigger a deploy by sending a
-`repository_dispatch` event to this repo (needs a token with `repo` scope):
+**Inputs** — `environment` is required (`dev` / `staging` / `production`);
+the four version texts (`frontend_version`, `astrology_version`,
+`booking_version`, `payment_version`, `X.Y.Z` or `latest`) are optional, but
+at least one must be set. Only components with a version are touched; on
+staging/production the live color is detected from `routes.yml` and only the
+idle color tag is bumped — the traffic flip stays manual
+(see [section 7](#7-blue-green-deployments)).
 
-| Event type | Workflow | Target host |
-|---|---|---|
-| `deploy-staging` | `deploy-staging.yml` | staging |
-| `deploy-production` | `deploy-production.yml` | production |
-
-Payload (`client_payload`), or the equivalent `workflow_dispatch` inputs
-for manual runs from the Actions tab:
-
-```json
-{
-  "service": "astrolumina-frontend",
-  "tag": "v1.4.2",
-  "color": "green"
-}
-```
-
-`color` is the **idle** color to deploy (live color untouched); flip traffic
-afterwards via `routes.yml` ([section 7](#7-blue-green-deployments)).
-
-Valid `service` values (= GHCR image names): `astrolumina-frontend`,
-`astrolumina-astrologyapi`, `astrolumina-bookingapi`, `astrolumina-paymentapi`.
-Each maps to its per-color `*_BLUE/_GREEN_DOCKER_IMAGE_TAG` variable (baseline
-in git `<env>/versions.env`, pinned into the server-side `<env>/.env` by the
-workflow) and to the matching single-color compose service, which is pulled
-and recreated. Only the idle color gets the new tag; the blue-green switch
-itself stays manual (see [section 7](#7-blue-green-deployments)).
-
-**Required secrets** (per environment): `STAGING_HOST` / `PRODUCTION_HOST`
-plus `STAGING_SSH_KEY` / `PRODUCTION_SSH_KEY`.
+After merge, apply on the env host (`compose pull + up -d` with the three
+`-f` files on staging/production) and smoke-test the idle color before
+flipping. No secrets are needed by the workflow (same-repo `GITHUB_TOKEN`
+opens the PR).
 
 - `refresh.sh` (repo root) — local helper that runs `docker compose down`
   across the four app repos via Doppler; unrelated to server deploys.

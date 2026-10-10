@@ -1,0 +1,178 @@
+# =============================================================================
+# AstroLumina DockerCompose -- Deploy
+#
+# Single manual deploy workflow (replaces deploy-staging.yml and
+# deploy-production.yml). Bumps image tags in versions.env IN GIT on a
+# branch and opens a PR to main -- a human merges, then the env host applies
+# with `compose pull + up -d` and flips traffic when ready.
+#
+# Inputs: required environment choice (development/staging/production) plus four
+# optional version texts. At least one version is mandatory; only components
+# with a version are touched.
+#
+# Per-env logic (blue-green awareness):
+# - dev: development/versions.env holds four plain tags (no colors) -- the
+#   specified ones are replaced in place.
+# - staging/production: versions.env holds per-color tags. The live color is
+#   read from traefik/dynamic/routes.yml (the `service: <app>-<color>` router
+#   fields) and only the IDLE color tag is bumped. Traffic is NOT flipped
+#   here -- flip routes.yml afterwards, same as the promote flow.
+# =============================================================================
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      frontend_version:
+        description: "Frontend version (X.Y.Z or latest, empty = skip)"
+        required: false
+        default: ""
+      astrology_version:
+        description: "Astrology API version (X.Y.Z or latest, empty = skip)"
+        required: false
+        default: ""
+      booking_version:
+        description: "Booking API version (X.Y.Z or latest, empty = skip)"
+        required: false
+        default: ""
+      payment_version:
+        description: "Payment API version (X.Y.Z or latest, empty = skip)"
+        required: false
+        default: ""
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Require at least one version
+        run: |
+          if [ -z "${{ inputs.frontend_version }}" ] \
+            && [ -z "${{ inputs.astrology_version }}" ] \
+            && [ -z "${{ inputs.booking_version }}" ] \
+            && [ -z "${{ inputs.payment_version }}" ]; then
+            echo "At least one service version is required" >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Ensure PyYAML is available
+        run: |
+          python3 -c "import yaml" 2>/dev/null \
+            || pip install --break-system-packages pyyaml
+
+      - name: Bump versions in versions.env
+        env:
+          INPUT_ENV: ${{ inputs.environment }}
+          INPUT_FRONTEND_VERSION: ${{ inputs.frontend_version }}
+          INPUT_ASTROLOGY_VERSION: ${{ inputs.astrology_version }}
+          INPUT_BOOKING_VERSION: ${{ inputs.booking_version }}
+          INPUT_PAYMENT_VERSION: ${{ inputs.payment_version }}
+        run: |
+          python3 - <<'PYEOF'
+          import os
+          import re
+
+          import yaml
+
+          env_in = os.environ["INPUT_ENV"]
+          env_dir = {"development": "development", "staging": "staging",
+                     "production": "production"}[env_in]
+          wanted = {
+              "FRONTEND": os.environ.get("INPUT_FRONTEND_VERSION", "").strip(),
+              "ASTROLOGY_API": os.environ.get("INPUT_ASTROLOGY_VERSION", "").strip(),
+              "BOOKING_API": os.environ.get("INPUT_BOOKING_VERSION", "").strip(),
+              "PAYMENT_API": os.environ.get("INPUT_PAYMENT_VERSION", "").strip(),
+          }
+          specified = {k: v for k, v in wanted.items() if v}
+          assert specified, "no version given (blocked by the validation step)"
+          shape = re.compile(r"^(\d+\.\d+\.\d+|latest)$")
+          for prefix, ver in specified.items():
+              assert shape.match(ver), (
+                  f"bad version {ver!r} for {prefix}: want X.Y.Z or latest")
+
+          def set_tag(path, key, ver):
+              with open(path) as f:
+                  src = f.read()
+              new, n = re.subn(f"^{key}=.*$", f"{key}={ver}", src,
+                               count=1, flags=re.M)
+              assert n == 1, f"{key} not found exactly once in {path}"
+              with open(path, "w") as f:
+                  f.write(new)
+
+          versions_file = f"{env_dir}/versions.env"
+          if env_in == "development":
+              for prefix, ver in specified.items():
+                  set_tag(versions_file, f"{prefix}_DOCKER_IMAGE_TAG", ver)
+                  print(f"{prefix}: tag set to {ver}")
+          else:
+              with open(f"{env_dir}/traefik/dynamic/routes.yml") as f:
+                  routers = yaml.safe_load(f)["http"]["routers"]
+              # Router key per tag prefix; the service value reads
+              # "<router>-<color>" (e.g. astrology-blue).
+              router_of = {"FRONTEND": "frontend",
+                           "ASTROLOGY_API": "astrology",
+                           "BOOKING_API": "booking",
+                           "PAYMENT_API": "payment"}
+              for prefix, ver in specified.items():
+                  service = routers[router_of[prefix]]["service"]
+                  base, live = service.rsplit("-", 1)
+                  assert base == router_of[prefix], (
+                      f"unexpected service {service!r} on router")
+                  assert live in ("blue", "green"), (
+                      f"unexpected live color {live!r}")
+                  idle = "green" if live == "blue" else "blue"
+                  set_tag(versions_file,
+                          f"{prefix}_{idle.upper()}_DOCKER_IMAGE_TAG", ver)
+                  print(f"{prefix}: live={live}, idle {idle} tag set to {ver}")
+          PYEOF
+
+      - name: Commit to branch and open deploy PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="deploy/${{ inputs.environment }}-${{ github.run_number }}"
+          # The deploy/* namespace is bot-owned: -B resets a stale branch
+          # from an earlier failed run, and the force-push below only ever
+          # overwrites the bot's own previous attempt, never human work.
+          git checkout -B "$BRANCH"
+          # Fresh checkout plus the single python step above: -A can only
+          # stage the intended versions.env change.
+          git add -A
+          echo "Changed files:"; git diff --cached --name-only
+          if git diff --cached --quiet; then
+            echo "Nothing to commit (versions already at the requested tags)"
+          else
+            git commit -m "deploy ${{ inputs.environment }}: bump image tags"
+          fi
+          if [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ]; then
+            echo "No changes vs main, skipping PR"
+          else
+            git push -u -f origin "$BRANCH"
+            if gh pr view "$BRANCH" --json number -q .number >/dev/null 2>&1; then
+              echo "PR already exists for $BRANCH, pushed update to it"
+            else
+              gh pr create --base main --head "$BRANCH" \
+                --title "deploy ${{ inputs.environment }}: bump image tags" \
+                --body "Manual deploy to ${{ inputs.environment }} (run ${{ github.run_number }}). Merge, then apply on the env host with compose pull + up -d and flip traffic when ready."
+            fi
+          fi
